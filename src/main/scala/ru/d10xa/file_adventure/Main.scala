@@ -18,22 +18,32 @@ object Main {
     ).forall(identity)
   }
 
+  def fileToHash(file: File, bar: ProgressBar): String = {
+    val _ = bar.setExtraMessage(file.name)
+    val sum = file.sha256.toLowerCase
+    val _ = bar.stepBy(file.size)
+    sum
+  }
+
+  val filesToHashes: Vector[File] => Vector[String] = files => (
+    for {
+      bar <- new ProgressBar("", files.map(_.size).sum).autoClosed
+    } yield files.map(fileToHash(_, bar))
+    ).get()
+
+  val sortHashes: Vector[String] => Vector[String] = _.sortBy(new BigInteger(_, 16))
+
+  val toSingleHash: Vector[String] => String = {
+    case Vector(x: String) => x
+    case xs => sha256Hex(xs.mkString(""))
+  }
+
   def main(args: Array[String]): Unit = {
     val files = File(args.head)
-      .list(filePredicate).toList
-    val progress = new ProgressBar("", files.map(_.size).sum)
+      .list(filePredicate)
+      .toList
 
-    val hash: String = files
-      .map { file =>
-        val sha = file.sha256.toLowerCase
-        val _ = progress.stepBy(file.size)
-        sha
-      }
-      .sortBy(new BigInteger(_, 16)) match {
-      case x :: Nil => x
-      case xs => sha256Hex(xs.mkString(""))
-    }
-    val _ = progress.stop()
+    val hash: String = (toSingleHash compose sortHashes compose filesToHashes) (files.toVector)
 
     println(hash)
   }

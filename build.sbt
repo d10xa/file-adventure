@@ -1,5 +1,5 @@
 ThisBuild / scalaVersion := "2.13.0"
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1.0"
 ThisBuild / organization := "ru.d10xa"
 
 lazy val root = (project in file(".")).
@@ -10,12 +10,12 @@ lazy val root = (project in file(".")).
     test in assembly := {},
     scalacOptions := Seq(
       "-encoding", "UTF-8", // source files are in UTF-8
-//      "-deprecation", // warn about use of deprecated APIs
+      "-deprecation", // warn about use of deprecated APIs
       "-unchecked", // warn about unchecked type parameters
       "-feature", // warn about misused language features
       "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
-      "-Xlint" // enable handy linter warnings
-//      "-Xfatal-warnings" // turn compiler warnings into errors
+      "-Xlint", // enable handy linter warnings
+      "-Xfatal-warnings" // turn compiler warnings into errors
     )
   )
 
