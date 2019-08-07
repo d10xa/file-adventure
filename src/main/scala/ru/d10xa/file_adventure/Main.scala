@@ -16,17 +16,19 @@ object Main {
       f.isRegularFile
     ).forall(identity)
 
-  def fileToHash(file: File, bar: ProgressBar): String = {
-    val _ = bar.setExtraMessage(file.name)
-    val sum = file.sha256.toLowerCase
-    val _ = bar.stepBy(file.size)
-    sum
-  }
+  val fileToHash: File => String = _.sha256.toLowerCase
 
-  val filesToHashes: Vector[File] => Vector[String] = files =>
+  val filesToHashWithProgressBar: Vector[File] => Vector[String] = files => {
     new ProgressBar("", files.map(_.size).sum).autoClosed
-      .map(bar => files.map(fileToHash(_, bar)))
+      .map(bar =>
+        files.map { file =>
+          val _ = bar.setExtraMessage(file.name)
+          val hash = fileToHash(file)
+          val _ = bar.stepBy(file.size)
+          hash
+      })
       .get()
+  }
 
   val sortHashes: Vector[String] => Vector[String] =
     _.sortBy(new BigInteger(_, 16))
@@ -39,7 +41,7 @@ object Main {
   val filesToSingleHash: Vector[File] => String =
     sortedHashesToSingleHash
       .compose(sortHashes)
-      .compose(filesToHashes)
+      .compose(filesToHashWithProgressBar)
 
   def main(args: Array[String]): Unit = {
     val files = File(args.head)
