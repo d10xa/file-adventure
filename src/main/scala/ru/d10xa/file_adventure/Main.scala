@@ -18,7 +18,7 @@ object Main {
 
   val fileToHash: File => String = _.sha256.toLowerCase
 
-  val filesToHashWithProgressBar: Vector[File] => Vector[String] = files => {
+  val filesToHashesWithProgressBar: Vector[File] => Vector[String] = files => {
     new ProgressBar("", files.map(_.size).sum).autoClosed
       .map(bar =>
         files.map { file =>
@@ -41,7 +41,7 @@ object Main {
   val filesToSingleHash: Vector[File] => String =
     sortedHashesToSingleHash
       .compose(sortHashes)
-      .compose(filesToHashWithProgressBar)
+      .compose(filesToHashesWithProgressBar)
 
   def main(args: Array[String]): Unit = {
     val files = File(args.head)
