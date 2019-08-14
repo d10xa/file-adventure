@@ -38,19 +38,7 @@ object Main {
     case xs => sha256Hex(xs.mkString(""))
   }
 
-  val filesToSingleHash: Vector[File] => String =
-    sortedHashesToSingleHash
-      .compose(sortHashes)
-      .compose(filesToHashesWithProgressBar)
-
-  def main(args: Array[String]): Unit = {
-    val files = File(args.head)
-      .list(filePredicate)
-      .toList
-
-    val hash: String = filesToSingleHash(files.toVector)
-
-    println(hash)
-  }
+  def main(args: Array[String]): Unit =
+    new Sha256(File(args.head)).run()
 
 }
