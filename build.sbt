@@ -64,3 +64,4 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % Test
 libraryDependencies += "me.tongfei" % "progressbar" % "0.7.4"
 libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.8.0"
 libraryDependencies += "commons-codec" % "commons-codec" % "1.13"
+libraryDependencies += "org.rogach" %% "scallop" % "3.3.1"

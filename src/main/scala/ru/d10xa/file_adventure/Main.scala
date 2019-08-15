@@ -38,7 +38,16 @@ object Main {
     case xs => sha256Hex(xs.mkString(""))
   }
 
-  def main(args: Array[String]): Unit =
-    new Sha256(File(args.head)).run()
+  def main(args: Array[String]): Unit = {
+    val conf = new Conf(args.toList)
+
+    conf.subcommand match {
+      case Some(conf.minus) =>
+        new Minus(File(conf.minus.left()), File(conf.minus.right())).run()
+      case Some(conf.sha256) =>
+        new Sha256(File(conf.sha256.dir())).run()
+      case _ => ()
+    }
+  }
 
 }
