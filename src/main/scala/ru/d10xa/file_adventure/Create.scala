@@ -1,18 +1,20 @@
 package ru.d10xa.file_adventure
 
 import better.files._
+import ru.d10xa.file_adventure.core.FileAndHash
 
 class Create(dir: File) {
 
   val FILESUM_CONSTANT_NAME = ".sha256.sfv"
 
-  val calculateSums: List[File] => List[SumFileRow] = _.map(SumFileRow.fromFile)
-  val sumsAsStrings: List[SumFileRow] => List[String] = _.map(_.asFileString)
+  val calculateSums: List[File] => List[FileAndHash] =
+    _.map(FileAndHash.fromFile)
+  val sumsAsStrings: List[FileAndHash] => List[String] = _.map(_.asFileString)
 
   def run(): Unit = {
 
     def createShaFiles(parent: File, files: List[File]): Unit = {
-      val content = sumsAsStrings.compose(calculateSums)(files).mkString("\n")
+      val content = calculateSums.andThen(sumsAsStrings)(files).mkString("\n")
       File(parent, FILESUM_CONSTANT_NAME).write(content)
     }
 
@@ -22,12 +24,4 @@ class Create(dir: File) {
     }
   }
 
-}
-
-final case class SumFileRow(regularFile: File, sum: String) {
-  val asFileString: String = s"$sum *${regularFile.name}"
-}
-
-object SumFileRow {
-  def fromFile(f: File): SumFileRow = SumFileRow(f, f.sha256.toLowerCase)
 }
