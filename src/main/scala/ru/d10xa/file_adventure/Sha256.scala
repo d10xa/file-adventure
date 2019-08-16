@@ -9,7 +9,7 @@ class Sha256(dir: File) {
   def run(): Unit = {
     val hash = Sha256.filesToSingleHash(
       dir
-        .list(Main.filePredicate)
+        .list(core.filePredicate)
         .toList
         .toVector)
     println(hash)

@@ -7,10 +7,10 @@ class Minus(left: File, right: File) {
 
   def run(): Unit = {
     val leftFiles = left
-      .list(Main.filePredicate)
+      .list(core.filePredicate)
       .toList
     val rightFiles = right
-      .list(Main.filePredicate)
+      .list(core.filePredicate)
       .toList
 
     def fileWithSum(file: File, bar: ProgressBar): (File, String) = {

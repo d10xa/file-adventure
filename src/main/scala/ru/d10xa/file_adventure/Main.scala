@@ -8,22 +8,12 @@ import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 
 object Main {
 
-  def filePredicate(f: File): Boolean =
-    Seq(
-      !f.isHidden,
-      !f.name.startsWith("."),
-      !f.name.endsWith(".sfv"),
-      f.isRegularFile
-    ).forall(identity)
-
-  val fileToHash: File => String = _.sha256.toLowerCase
-
   val filesToHashesWithProgressBar: Vector[File] => Vector[String] = files => {
     new ProgressBar("", files.map(_.size).sum).autoClosed
       .map(bar =>
         files.map { file =>
           val _ = bar.setExtraMessage(file.name)
-          val hash = fileToHash(file)
+          val hash = core.fileToHash(file)
           val _ = bar.stepBy(file.size)
           hash
       })
@@ -46,6 +36,8 @@ object Main {
         new Minus(File(conf.minus.left()), File(conf.minus.right())).run()
       case Some(conf.sha256) =>
         new Sha256(File(conf.sha256.dir())).run()
+      case Some(conf.create) =>
+        new Create(File(conf.create.dir())).run()
       case _ => ()
     }
   }
