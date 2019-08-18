@@ -3,24 +3,9 @@ package ru.d10xa.file_adventure
 import java.math.BigInteger
 
 import better.files._
-import me.tongfei.progressbar.ProgressBar
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
-import ru.d10xa.file_adventure.core.FileAndHash
 
 object Main {
-
-  val filesToHashesWithProgressBar: Vector[File] => Vector[FileAndHash] =
-    files => {
-      new ProgressBar("", files.map(_.size).sum).autoClosed
-        .map(bar =>
-          files.map { file =>
-            val _ = bar.setExtraMessage(file.name)
-            val hash = core.fileToHash(file)
-            val _ = bar.stepBy(file.size)
-            FileAndHash(file, hash)
-        })
-        .get()
-    }
 
   val sortHashes: Vector[String] => Vector[String] =
     _.sortBy(new BigInteger(_, 16))
