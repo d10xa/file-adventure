@@ -1,47 +1,37 @@
 package ru.d10xa.file_adventure
 
 import better.files._
-import me.tongfei.progressbar.ProgressBar
+import ru.d10xa.file_adventure.core.FileAndHash
 
 class Minus(left: File, right: File) {
 
-  def run(): Unit = {
-    val leftFiles = left
-      .list(core.filePredicate)
-      .toList
-    val rightFiles = right
-      .list(core.filePredicate)
-      .toList
+  import Minus._
 
-    def fileWithSum(file: File, bar: ProgressBar): (File, String) = {
-      val _ = bar.setExtraMessage(file.name)
-      val sum = file.sha256.toLowerCase
-      val _ = bar.stepBy(file.size)
-      (file, sum)
-    }
+  def run(): Unit =
+    minus(left, right)
+      .map(_.toJava.getAbsolutePath)
+      .foreach(println(_))
+}
 
-    val leftWithSum: List[(File, String)] = (for {
-      bar <- new ProgressBar("", leftFiles.map(_.size).sum).autoClosed
-    } yield leftFiles.map(fileWithSum(_, bar))).get()
+object Minus {
+  def minus(left: File, right: File): Set[File] = {
+    val leftWithSum: Iterable[FileAndHash] = dirToHashedFiles(left)
+    val rightWithSum: Iterable[FileAndHash] = dirToHashedFiles(right)
 
-    val rightWithSum: List[(File, String)] = (for {
-      bar <- new ProgressBar("", rightFiles.map(_.size).sum).autoClosed
-    } yield rightFiles.map(fileWithSum(_, bar))).get()
-
-    val sumToLeftName: Map[String, String] =
+    val sumToFile: Map[String, File] =
       leftWithSum
-        .map(_.swap)
+        .map { case FileAndHash(file, hash) => (hash, file) }
         .toMap
         .view
-        .mapValues(_.toJava.getAbsolutePath)
         .toMap
 
-    val resultFiles =
-      leftWithSum
-        .map(_._2)
-        .diff(rightWithSum.map(_._2))
-        .map(s => sumToLeftName(s))
-
-    resultFiles.foreach(println(_))
+    leftWithSum
+      .map(_.hash)
+      .toSet
+      .diff(rightWithSum.map(_.hash).toSet)
+      .map(s => sumToFile(s))
   }
+  val listFiles: File => List[File] = _.list(core.filePredicate).toList
+  val dirToHashedFiles: File => Iterable[FileAndHash] =
+    listFiles.andThen(core.filesToHashesWithProgressBar)
 }
