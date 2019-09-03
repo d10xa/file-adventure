@@ -12,6 +12,10 @@ object core {
 
   object FileAndHash {
     def fromFile(f: File): FileAndHash = FileAndHash(f, f.sha256.toLowerCase)
+    val fromLine: String => FileAndHash = _.split(" [*,\\s]").toList match {
+      case sum :: file :: Nil => FileAndHash(File(file), sum)
+      case xs => throw new IllegalArgumentException(xs.mkString("[", ",", "]"))
+    }
   }
 
   def filePredicate(f: File): Boolean =
