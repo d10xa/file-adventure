@@ -2,6 +2,7 @@ package ru.d10xa.file_adventure
 
 import better.files._
 import ru.d10xa.file_adventure.core.FileAndHash
+import ru.d10xa.file_adventure.core.Sha256Hash
 
 class Minus(left: File, right: File) {
 
@@ -18,7 +19,7 @@ object Minus {
     val leftWithSum: Iterable[FileAndHash] = dirToHashedFiles(left)
     val rightWithSum: Iterable[FileAndHash] = dirToHashedFiles(right)
 
-    val sumToFile: Map[String, File] =
+    val sumToFile: Map[Sha256Hash, File] =
       leftWithSum
         .map { case FileAndHash(file, hash) => (hash, file) }
         .toMap

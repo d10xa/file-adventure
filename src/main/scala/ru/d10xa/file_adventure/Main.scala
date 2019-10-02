@@ -1,18 +1,17 @@
 package ru.d10xa.file_adventure
 
-import java.math.BigInteger
-
 import better.files._
-import org.apache.commons.codec.digest.DigestUtils.sha256Hex
+import ru.d10xa.file_adventure.core.Sha256Hash
+import cats.implicits._
 
 object Main {
 
-  val sortHashes: Vector[String] => Vector[String] =
-    _.sortBy(new BigInteger(_, 16))
+  val sortHashes: Vector[Sha256Hash] => Vector[Sha256Hash] =
+    xs => xs.sortBy(_.asBigInteger)
 
-  val sortedHashesToSingleHash: Vector[String] => String = {
-    case Vector(x: String) => x
-    case xs => sha256Hex(xs.mkString(""))
+  val sortedHashesToSingleHash: Vector[Sha256Hash] => Sha256Hash = {
+    case Vector(x: Sha256Hash) => x
+    case xs => Sha256Hash.fromString(xs.map(_.value.show).mkString(""))
   }
 
   def main(args: Array[String]): Unit = {
@@ -25,6 +24,8 @@ object Main {
         new Sha256(File(conf.sha256.dir())).run()
       case Some(conf.create) =>
         new Create(File(conf.create.dir())).run()
+      case Some(conf.check) =>
+        new Check(File(conf.check.dir())).run()
       case _ => ()
     }
   }

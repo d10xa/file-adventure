@@ -9,6 +9,7 @@ class Create(dir: File) {
 
   val calculateSums: List[File] => List[FileAndHash] =
     _.map(FileAndHash.fromFile)
+
   val sumsAsStrings: List[FileAndHash] => List[String] = _.map(_.asFileString)
 
   def run(): Unit = {

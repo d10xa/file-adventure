@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "2.13.0"
+ThisBuild / scalaVersion := "2.13.1"
 ThisBuild / version := "0.1.0"
 ThisBuild / organization := "ru.d10xa"
 
@@ -50,7 +50,7 @@ wartremoverErrors in (Compile, compile) ++= Seq(
   Wart.Return,
   Wart.Serializable,
   Wart.StringPlusAny,
-  Wart.Throw,
+//  Wart.Throw,
   Wart.ToString,
   Wart.TraversableOps,
   Wart.TryPartial,
