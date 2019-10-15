@@ -24,7 +24,7 @@ class CoreTest extends TestBase {
     val fileName = "a and b.txt"
 
     FileAndHash
-      .fromLine(line)
+      .fromLine(File("."))(line)
       .shouldEqual(FileAndHash(File(fileName), Sha256Hash(hash)))
   }
 }

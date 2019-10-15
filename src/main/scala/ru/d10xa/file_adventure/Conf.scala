@@ -15,13 +15,19 @@ class SubcommandCreate extends Subcommand("create") {
   val dir: ScallopOption[String] = opt[String]()
 }
 
+class SubcommandCheck extends Subcommand("check") {
+  val dir: ScallopOption[String] = opt[String]()
+}
+
 class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val minus: SubcommandMinus = new SubcommandMinus()
   val sha256: SubcommandSha256 = new SubcommandSha256()
   val create: SubcommandCreate = new SubcommandCreate()
+  val check: SubcommandCheck = new SubcommandCheck()
 
   addSubcommand(minus)
   addSubcommand(sha256)
   addSubcommand(create)
+  addSubcommand(check)
   verify()
 }
