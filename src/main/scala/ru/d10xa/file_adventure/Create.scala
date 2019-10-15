@@ -5,8 +5,6 @@ import ru.d10xa.file_adventure.core.FileAndHash
 
 class Create(dir: File) {
 
-  val FILESUM_CONSTANT_NAME = ".sha256.sfv"
-
   val calculateSums: List[File] => List[FileAndHash] =
     _.map(FileAndHash.fromFile)
 
@@ -16,7 +14,7 @@ class Create(dir: File) {
 
     def createShaFiles(parent: File, files: List[File]): Unit = {
       val content = calculateSums.andThen(sumsAsStrings)(files).mkString("\n")
-      File(parent, FILESUM_CONSTANT_NAME).write(content)
+      File(parent, core.FILESUM_CONSTANT_NAME).write(content)
     }
 
     val x = dir.list(core.filePredicate).toList.groupBy(_.parent)
