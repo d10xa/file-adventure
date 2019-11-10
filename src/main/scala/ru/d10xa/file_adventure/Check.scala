@@ -11,7 +11,7 @@ import scala.annotation.tailrec
 class Check(dir: File) {
 
   def checkDir(dir: File): List[CheckedFile] = {
-    val regularFiles: List[File] = dir.list.toList.filter(_.isRegularFile)
+    val regularFiles: List[File] = dir.list.toList.filter(core.filePredicate)
     val filesToCheckOpt: Option[List[FileToCheck]] =
       File(dir, FILESUM_CONSTANT_NAME).fileExistsOption
         .map(FileToCheck.readFromSumFile)
