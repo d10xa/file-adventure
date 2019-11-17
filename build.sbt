@@ -16,11 +16,13 @@ lazy val root = (project in file(".")).settings(
     "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
     "-Xlint", // enable handy linter warnings
     "-Xfatal-warnings" // turn compiler warnings into errors
+  ),
+  addCompilerPlugin(
+    ("org.typelevel" % "kind-projector_2.13.1" % "0.11.0")
   )
 )
 
 wartremoverErrors in (Compile, compile) ++= Seq(
-  Wart.Any,
   Wart.AnyVal,
   Wart.ArrayEquals,
   Wart.AsInstanceOf,
@@ -39,7 +41,6 @@ wartremoverErrors in (Compile, compile) ++= Seq(
   Wart.LeakingSealed,
   Wart.MutableDataStructures,
   Wart.NonUnitStatements,
-  Wart.Nothing,
   Wart.Null,
   Wart.Option2Iterable,
   Wart.OptionPartial,
@@ -66,3 +67,7 @@ libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.8.0"
 libraryDependencies += "commons-codec" % "commons-codec" % "1.13"
 libraryDependencies += "org.rogach" %% "scallop" % "3.3.1"
 libraryDependencies += "org.typelevel" %% "cats-core" % "2.0.0-RC1"
+libraryDependencies += "org.tpolecat" %% "doobie-core" % "0.8.4"
+libraryDependencies += "org.xerial" % "sqlite-jdbc" % "3.28.0"
+libraryDependencies += "io.circe" %% "circe-config" % "0.7.0"
+libraryDependencies += "io.circe" %% "circe-generic" % "0.12.3"

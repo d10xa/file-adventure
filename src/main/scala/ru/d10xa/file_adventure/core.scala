@@ -23,7 +23,7 @@ object core {
     Show[Sha256Hash](_.value.toString)
 
   implicit val showCheckedFile: Show[CheckedFile] =
-    Show[CheckedFile](_ match {
+    Show.show {
       case e @ ExistentCheckedFile(file, expectedHash, _) if e.valid =>
         s"OK ${file.toJava.getAbsolutePath} ${expectedHash.show}"
       case ExistentCheckedFile(file, expectedHash, actualHash) =>
@@ -32,7 +32,7 @@ object core {
         s"FILE NOT FOUND ${file.toJava.getAbsolutePath}, ${expectedHash.show}"
       case UntrackedFile(file, actualHash) =>
         s"UNTRACKED FILE ${file.toJava.getAbsolutePath}, ${actualHash.show}"
-    })
+    }
 
   final case class Sha256Hash(value: String) extends AnyRef {
     def asBigInteger: BigInt = new BigInteger(value, 16)
@@ -67,7 +67,6 @@ object core {
     Seq(
       !f.isHidden,
       !f.name.startsWith("."),
-//      !f.name.endsWith(".sfv"),
       f.isRegularFile
     ).forall(identity)
 
