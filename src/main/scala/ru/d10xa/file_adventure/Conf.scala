@@ -1,33 +1,6 @@
 package ru.d10xa.file_adventure
 
-import org.rogach.scallop._
-
-class SubcommandMinus extends Subcommand("minus") {
-  val right: ScallopOption[String] = opt[String](short = 'r')
-  val left: ScallopOption[String] = opt[String](short = 'l')
-}
-
-class SubcommandSha256 extends Subcommand("sha256") {
-  val dir: ScallopOption[String] = opt[String]()
-}
-
-class SubcommandCreate extends Subcommand("create") {
-  val dir: ScallopOption[String] = opt[String]()
-}
-
-class SubcommandCheck extends Subcommand("check") {
-  val dir: ScallopOption[String] = opt[String]()
-}
-
-class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
-  val minus: SubcommandMinus = new SubcommandMinus()
-  val sha256: SubcommandSha256 = new SubcommandSha256()
-  val create: SubcommandCreate = new SubcommandCreate()
-  val check: SubcommandCheck = new SubcommandCheck()
-
-  addSubcommand(minus)
-  addSubcommand(sha256)
-  addSubcommand(create)
-  addSubcommand(check)
-  verify()
-}
+final case class MinusCommand(left: String, right: String)
+final case class Sha256Command(dir: String)
+final case class CreateCommand(dir: String)
+final case class CheckCommand(dir: String)
