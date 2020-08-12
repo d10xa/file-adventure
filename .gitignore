@@ -1,9 +1,10 @@
+.DS_Store
 .attach_pid*
 .bloop/
-.DS_Store
 .idea/
 .metals/
 bin/
+out/IntelliJ-BSP*
 project/project/
 project/target/
 target/
