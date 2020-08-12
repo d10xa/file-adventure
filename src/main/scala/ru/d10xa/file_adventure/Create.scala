@@ -16,7 +16,7 @@ class Create(dir: File, fileEntryRepository: FileEntryRepositoryAlgebra[IO]) {
 
   val saveToDbUnsafe: List[FileAndHash] => List[FileAndHash] = list => {
     list.foreach { fh =>
-      fileEntryRepository.saveWithHash(fh).unsafeRunSync
+      val _ = fileEntryRepository.saveWithHash(fh).unsafeRunSync()
     }
     list
   }

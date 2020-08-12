@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "2.13.1"
+ThisBuild / scalaVersion := "2.13.3"
 ThisBuild / version := "0.1.0"
 ThisBuild / organization := "ru.d10xa"
 
@@ -14,12 +14,12 @@ lazy val root = (project in file(".")).settings(
     "-unchecked", // warn about unchecked type parameters
     "-feature", // warn about misused language features
     "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
-    "-Xlint", // enable handy linter warnings
-    "-Xfatal-warnings" // turn compiler warnings into errors
+    "-Xlint" // enable handy linter warnings
+//    "-Xfatal-warnings", // turn compiler warnings into errors
+//    "-Xlint:byname-implicit" // https://github.com/scala/bug/issues/12072
   ),
   addCompilerPlugin(
-    ("org.typelevel" % "kind-projector_2.13.1" % "0.11.0")
-  )
+    ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full))
 )
 
 wartremoverErrors in (Compile, compile) ++= Seq(
@@ -61,13 +61,14 @@ wartremoverErrors in (Compile, compile) ++= Seq(
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % Test
-libraryDependencies += "me.tongfei" % "progressbar" % "0.7.4"
-libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.8.0"
-libraryDependencies += "commons-codec" % "commons-codec" % "1.13"
-libraryDependencies += "org.rogach" %% "scallop" % "3.3.1"
-libraryDependencies += "org.typelevel" %% "cats-core" % "2.0.0-RC1"
-libraryDependencies += "org.tpolecat" %% "doobie-core" % "0.8.4"
-libraryDependencies += "org.xerial" % "sqlite-jdbc" % "3.28.0"
-libraryDependencies += "io.circe" %% "circe-config" % "0.7.0"
-libraryDependencies += "io.circe" %% "circe-generic" % "0.12.3"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0" % Test
+libraryDependencies += "me.tongfei" % "progressbar" % "0.8.1"
+libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.9.1"
+libraryDependencies += "commons-codec" % "commons-codec" % "1.14"
+libraryDependencies += "org.typelevel" %% "cats-core" % "2.1.1"
+libraryDependencies += "org.tpolecat" %% "doobie-core" % "0.9.0"
+libraryDependencies += "org.xerial" % "sqlite-jdbc" % "3.32.3.2"
+libraryDependencies += "io.circe" %% "circe-config" % "0.8.0"
+libraryDependencies += "io.circe" %% "circe-generic" % "0.13.0"
+libraryDependencies += "com.monovore" %% "decline" % "1.2.0"
+libraryDependencies += "com.monovore" %% "decline-effect" % "1.2.0"
