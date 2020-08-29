@@ -20,7 +20,7 @@ object core {
   }
 
   implicit val showSha256Hash: Show[Sha256Hash] =
-    Show[Sha256Hash](_.value.toString)
+    Show[Sha256Hash](_.value)
 
   implicit val showCheckedFile: Show[CheckedFile] =
     Show.show {
@@ -60,7 +60,7 @@ object core {
             FileAndHash(File(parent, file), Sha256Hash(sum))
           case xs =>
             throw new IllegalArgumentException(xs.mkString("[", ",", "]"))
-    }
+        }
   }
 
   def filePredicate(f: File): Boolean =
@@ -79,7 +79,8 @@ object core {
             val h = FileAndHash.fromFile(file)
             val _ = bar.stepBy(file.size)
             h
-        })
+          }
+        )
         .get()
     }
 

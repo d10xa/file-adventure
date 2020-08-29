@@ -19,7 +19,8 @@ lazy val root = (project in file(".")).settings(
 //    "-Xlint:byname-implicit" // https://github.com/scala/bug/issues/12072
   ),
   addCompilerPlugin(
-    ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full))
+    ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)
+  )
 )
 
 wartremoverErrors in (Compile, compile) ++= Seq(
@@ -66,8 +67,6 @@ libraryDependencies += "me.tongfei" % "progressbar" % "0.8.1"
 libraryDependencies += "com.github.pathikrit" %% "better-files" % "3.9.1"
 libraryDependencies += "commons-codec" % "commons-codec" % "1.14"
 libraryDependencies += "org.typelevel" %% "cats-core" % "2.1.1"
-libraryDependencies += "org.tpolecat" %% "doobie-core" % "0.9.0"
-libraryDependencies += "org.xerial" % "sqlite-jdbc" % "3.32.3.2"
 libraryDependencies += "io.circe" %% "circe-config" % "0.8.0"
 libraryDependencies += "io.circe" %% "circe-generic" % "0.13.0"
 libraryDependencies += "com.monovore" %% "decline" % "1.2.0"
