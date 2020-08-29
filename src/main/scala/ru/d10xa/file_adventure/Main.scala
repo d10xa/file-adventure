@@ -12,13 +12,8 @@ import com.monovore.decline.effect._
 object Main
     extends CommandIOApp(
       name = "file-adventure",
-      header = "hash sum command line utitily"
+      header = "hash sum command line utility"
     ) {
-
-  val dir: String = s"${System
-    .getProperty("user.home")}/.file-adventure"
-
-  better.files.File(dir).createDirectoryIfNotExists()
 
   val sortHashes: Vector[Sha256Hash] => Vector[Sha256Hash] =
     xs => xs.sortBy(_.asBigInteger)
