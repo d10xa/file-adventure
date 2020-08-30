@@ -47,9 +47,17 @@ object Main
       "create",
       help = s"create ${core.FILESUM_CONSTANT_NAME} files"
     )(
-      Opts
-        .option[String]("dir", help = "directory for hash calculations")
-        .map(CreateCommand.apply)
+      (
+        Opts
+          .option[String]("dir", help = "directory for hash calculations"),
+        Opts
+          .flag(
+            "one-file",
+            help = "make a single file with deep listing in it"
+          )
+          .orFalse
+      )
+        .mapN(CreateCommand.apply)
     )
 
   val checkOpts: Opts[CheckCommand] =
@@ -74,13 +82,14 @@ object Main
     val sha256 = sha256Opts.map(c =>
       Sync[F].delay(new Sha256(File(c.dir)).run()).as(ExitCode.Success)
     )
-    val create = createOpts.map { c =>
-      Sync[F]
-        .delay(
-          new Create(File(c.dir))
-            .run()
-        )
-        .as(ExitCode.Success)
+    val create = createOpts.map {
+      case CreateCommand(dir, oneFile) =>
+        Sync[F]
+          .delay(
+            new Create(File(dir), oneFile)
+              .run()
+          )
+          .as(ExitCode.Success)
     }
     val check = checkOpts.map(c =>
       Sync[F].delay(new Check(File(c.dir)).run()).as(ExitCode.Success)
