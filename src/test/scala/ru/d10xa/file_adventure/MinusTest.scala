@@ -1,15 +1,15 @@
 package ru.d10xa.file_adventure
 
-import better.files._
+import better.files.File
 import cats.effect.IO
+import ru.d10xa.file_adventure.fs.Checksum
 
 class MinusTest extends TestBase {
+  implicit private val checksum: Checksum[IO] =
+    Checksum.make[IO].unsafeRunSync()
   test("sha for dir with one file equal to hash of file") {
-    new Minus[IO](
-      File("src/test/file/minus/dir1"),
-      File("src/test/file/minus/dir2")
-    )
-      .minus()
+    new Minus[IO]
+      .minus(File("src/test/file/minus/dir1"), File("src/test/file/minus/dir2"))
       .unsafeRunSync()
       .map(_.name)
       .shouldEqual(Set("c.txt"))
