@@ -1,6 +1,7 @@
 package ru.d10xa.file_adventure
 
 import better.files.File
+import cats.effect.IO
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 
@@ -24,7 +25,8 @@ class CoreTest extends TestBase {
     val fileName = "a and b.txt"
 
     FileAndHash
-      .fromLine(File("."))(line)
+      .fromLine[IO](File("."), line)
+      .unsafeRunSync()
       .shouldEqual(FileAndHash(File(fileName), Sha256Hash(hash)))
   }
 }

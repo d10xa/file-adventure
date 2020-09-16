@@ -1,38 +1,40 @@
 package ru.d10xa.file_adventure
 
 import better.files._
+import cats.effect.Sync
 import ru.d10xa.file_adventure.core.FileAndHash
-import ru.d10xa.file_adventure.core.Sha256Hash
+import cats.implicits._
+import ru.d10xa.file_adventure.fs.Checksum
 
-class Minus(left: File, right: File) {
+import scala.util.chaining._
 
-  import Minus._
+class Minus[F[_]: Sync: Checksum] {
 
-  def run(): Unit =
-    minus(left, right)
-      .map(_.toJava.getAbsolutePath)
-      .foreach(println(_))
-}
+  def run(c: MinusCommand): F[Unit] =
+    minus(File(c.left), File(c.right)).map(
+      _.map(_.toJava.getAbsolutePath)
+        .foreach(println(_))
+    )
+  def minus(left: File, right: File): F[Set[File]] =
+    for {
+      leftWithSum <- dirToHashedFiles(left)
+      rightWithSum <- dirToHashedFiles(right)
+      sumToFile =
+        leftWithSum
+          .map { case FileAndHash(file, hash) => (hash, file) }
+          .toMap
+          .view
+          .toMap
+      result =
+        leftWithSum
+          .map(_.hash)
+          .toSet
+          .diff(rightWithSum.map(_.hash).toSet)
+          .map(s => sumToFile(s))
+    } yield result
 
-object Minus {
-  def minus(left: File, right: File): Set[File] = {
-    val leftWithSum: Iterable[FileAndHash] = dirToHashedFiles(left)
-    val rightWithSum: Iterable[FileAndHash] = dirToHashedFiles(right)
+  val listFiles: File => Vector[File] = _.list(core.filePredicate).toVector
 
-    val sumToFile: Map[Sha256Hash, File] =
-      leftWithSum
-        .map { case FileAndHash(file, hash) => (hash, file) }
-        .toMap
-        .view
-        .toMap
-
-    leftWithSum
-      .map(_.hash)
-      .toSet
-      .diff(rightWithSum.map(_.hash).toSet)
-      .map(s => sumToFile(s))
-  }
-  val listFiles: File => List[File] = _.list(core.filePredicate).toList
-  val dirToHashedFiles: File => Iterable[FileAndHash] =
-    listFiles.andThen(core.filesToHashesWithProgressBar)
+  def dirToHashedFiles(file: File): F[Vector[FileAndHash]] =
+    listFiles(file).pipe(core.filesToHashesWithProgressBar[F])
 }

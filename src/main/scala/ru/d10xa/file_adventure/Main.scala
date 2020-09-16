@@ -1,6 +1,5 @@
 package ru.d10xa.file_adventure
 
-import better.files._
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.Sync
@@ -73,28 +72,17 @@ object Main
   override def main: Opts[IO[ExitCode]] = program[IO]
 
   def program[F[_]: Sync]: Opts[F[ExitCode]] = {
-    val minus = minusOpts
-      .map { c =>
-        Sync[F]
-          .delay(new Minus(File(c.left), File(c.right)).run())
-          .as(ExitCode.Success)
-      }
-    val sha256 = sha256Opts.map(c =>
-      Sync[F].delay(new Sha256(File(c.dir)).run()).as(ExitCode.Success)
-    )
-    val create = createOpts.map {
-      case CreateCommand(dir, oneFile) =>
-        Sync[F]
-          .delay(
-            new Create(File(dir), oneFile)
-              .run()
-          )
-          .as(ExitCode.Success)
-    }
-    val check = checkOpts.map(c =>
-      Sync[F].delay(new Check(File(c.dir)).run()).as(ExitCode.Success)
-    )
+    val minus = minusOpts.map(runCommand[F])
+    val sha256 = sha256Opts.map(runCommand[F])
+    val create = createOpts.map(runCommand[F])
+    val check = checkOpts.map(runCommand[F])
     minus.orElse(sha256).orElse(create).orElse(check)
   }
+
+  def runCommand[F[_]: Sync](c: CommandBase): F[ExitCode] =
+    Context
+      .make[F]
+      .flatMap(_.run(c))
+      .as(ExitCode.Success)
 
 }

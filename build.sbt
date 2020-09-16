@@ -14,13 +14,15 @@ lazy val root = (project in file(".")).settings(
     "-unchecked", // warn about unchecked type parameters
     "-feature", // warn about misused language features
     "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
-    "-Xlint" // enable handy linter warnings
-//    "-Xfatal-warnings", // turn compiler warnings into errors
+    "-Xlint", // enable handy linter warnings
+    "-Wvalue-discard",
+    "-Xfatal-warnings" // turn compiler warnings into errors
 //    "-Xlint:byname-implicit" // https://github.com/scala/bug/issues/12072
   ),
   addCompilerPlugin(
     ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)
-  )
+  ),
+  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
 )
 
 wartremoverErrors in (Compile, compile) ++= Seq(
