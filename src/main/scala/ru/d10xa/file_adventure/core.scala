@@ -23,9 +23,6 @@ object core {
       } yield exists && regularFile
   }
 
-  implicit val showSha256Hash: Show[Sha256Hash] =
-    Show[Sha256Hash](_.value)
-
   implicit val showCheckedFile: Show[CheckedFile] =
     Show.show {
       case e @ ExistentCheckedFile(file, expectedHash, _) if e.valid =>
@@ -45,11 +42,9 @@ object core {
 
   object Sha256Hash {
     implicit val eqSha256Hash: Eq[Sha256Hash] = Eq.fromUniversalEquals
+    implicit val showSha256Hash: Show[Sha256Hash] =
+      Show[Sha256Hash](_.value)
     def fromString(str: String): Sha256Hash = Sha256Hash(sha256Hex(str))
-    def fromFile[F[_]: Sync](file: File): F[Sha256Hash] =
-      Sync[F]
-        .delay(file.sha256.toLowerCase)
-        .map(sha => Sha256Hash(sha))
   }
 
   final case class FileAndHash(regularFile: File, hash: Sha256Hash) {
