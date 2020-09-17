@@ -4,11 +4,12 @@ import java.math.BigInteger
 
 import better.files.File
 import cats._
-import cats.effect.Resource
+import cats.effect.Bracket
 import cats.effect.Sync
 import cats.implicits._
-import me.tongfei.progressbar.ProgressBar
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
+import ru.d10xa.file_adventure.Progress.ProgressBuilder
+import ru.d10xa.file_adventure.Progress.InitParams
 import ru.d10xa.file_adventure.fs.Checksum
 
 object core {
@@ -76,19 +77,20 @@ object core {
       f.isRegularFile
     ).forall(identity)
 
-  def filesToHashesWithProgressBar[F[_]: Sync: Checksum](
+  def filesToHashesWithProgressBar[
+    F[_]: Monad: Checksum: Bracket[*[_], Throwable]
+  ](
+    progressBuilder: ProgressBuilder[F],
     files: Vector[File]
   ): F[Vector[FileAndHash]] =
-    Resource
-      .fromAutoCloseable(
-        Sync[F].delay(new ProgressBar("", files.map(_.size).sum))
-      )
-      .use(bar =>
+    progressBuilder
+      .build(InitParams("", files.foldLeft(0L)(_ + _.size)))
+      .use(progress =>
         files.traverse { file =>
           for {
-            _ <- Sync[F].delay(bar.setExtraMessage(file.name))
+            _ <- progress.setExtraMessage(file.name)
             h <- FileAndHash.fromFile[F](file)
-            _ <- Sync[F].delay(bar.stepBy(file.size))
+            _ <- progress.stepBy(file.size)
           } yield h
         }
       )

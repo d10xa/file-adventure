@@ -1,14 +1,18 @@
 package ru.d10xa.file_adventure
 
 import better.files._
-import cats.effect.Sync
 import ru.d10xa.file_adventure.core.FileAndHash
+import cats._
+import cats.effect.Bracket
 import cats.implicits._
+import ru.d10xa.file_adventure.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
 
 import scala.util.chaining._
 
-class Minus[F[_]: Sync: Checksum: Console] {
+class Minus[F[_]: Monad: Bracket[*[_], Throwable]: Checksum: Console](
+  progressBuilder: ProgressBuilder[F]
+) {
 
   def run(c: MinusCommand): F[Unit] =
     for {
@@ -38,5 +42,7 @@ class Minus[F[_]: Sync: Checksum: Console] {
   val listFiles: File => Vector[File] = _.list(core.filePredicate).toVector
 
   def dirToHashedFiles(file: File): F[Vector[FileAndHash]] =
-    listFiles(file).pipe(core.filesToHashesWithProgressBar[F])
+    listFiles(file).pipe(
+      core.filesToHashesWithProgressBar[F](progressBuilder, _)
+    )
 }

@@ -4,6 +4,7 @@ import cats.effect.Sync
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.FileWrite
 import cats.implicits._
+import ru.d10xa.file_adventure.Progress.ProgressBuilder
 
 class Context[F[_]](
   create: Create[F],
@@ -26,9 +27,10 @@ object Context {
       implicit0(checksum: Checksum[F]) <- Checksum.make[F]
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
       implicit0(console: Console[F]) <- Console.make[F]
+      progressBuilder: ProgressBuilder[F] <- Progress.builder[F]
       create = new Create[F]
       check = new Check[F]
-      sha256 = new Sha256[F]
-      minus = new Minus[F]
+      sha256 = new Sha256[F](progressBuilder)
+      minus = new Minus[F](progressBuilder)
     } yield new Context[F](create, check, sha256, minus)
 }
