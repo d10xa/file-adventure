@@ -8,7 +8,7 @@ import ru.d10xa.file_adventure.core.Sha256Hash
 class Sha256Test extends TestBase {
 
   test("sha for dir with one file equal to hash of file") {
-    recursiveHash[IO](File("src/test/file/one_file_dir"))
+    recursiveHash[IO](progressBuilder, File("src/test/file/one_file_dir"))
       .unsafeRunSync()
       .shouldEqual(
         Sha256Hash(
@@ -17,7 +17,7 @@ class Sha256Test extends TestBase {
       )
   }
   test("sha for two files") {
-    recursiveHash[IO](File("src/test/file/two_file_dir"))
+    recursiveHash[IO](progressBuilder, File("src/test/file/two_file_dir"))
       .unsafeRunSync()
       .shouldEqual(
         Sha256Hash(
