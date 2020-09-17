@@ -2,15 +2,16 @@ package ru.d10xa.file_adventure
 
 import java.nio.file.Path
 
-import better.files._
+import better.files.File
 import cats._
 import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
+import ru.d10xa.file_adventure.fs.Checksum
 import core._
 
-class Check[F[_]: Sync: Console] {
+class Check[F[_]: Sync: Checksum: Console] {
 
   def checkDir(dir: File): F[List[CheckedFile]] = {
     val regularFiles: F[List[File]] =
@@ -33,7 +34,7 @@ class Check[F[_]: Sync: Console] {
 
     def toUntracked(files: List[File]): F[List[UntrackedFile]] =
       files.traverse(file =>
-        Sha256Hash.fromFile(file).map(hash => UntrackedFile(file, hash))
+        Checksum[F].sha256(file.path).map(hash => UntrackedFile(file, hash))
       )
 
     val untrackedFiles: F[List[UntrackedFile]] = regularFiles
@@ -100,12 +101,12 @@ final case class FileToCheck(file: File, expectedHash: Sha256Hash) {
     file.isRegularFile,
     s"FileToCheck must be initialized only with files. (${file.path.show})"
   )
-  def check[F[_]: Sync](): F[CheckedFile] =
+  def check[F[_]: Sync: Checksum](): F[CheckedFile] =
     if (!file.exists || !file.isRegularFile)
       FileSystemMissingFile(file, expectedHash).pure[F].widen
     else
-      Sha256Hash
-        .fromFile[F](file)
+      Checksum[F]
+        .sha256(file.path)
         .map(sha => ExistentCheckedFile(file, expectedHash, sha))
 }
 
