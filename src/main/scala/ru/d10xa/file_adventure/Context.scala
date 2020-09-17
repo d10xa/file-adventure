@@ -25,6 +25,7 @@ object Context {
     for {
       implicit0(checksum: Checksum[F]) <- Checksum.make[F]
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
+      implicit0(console: Console[F]) <- Console.make[F]
       create = new Create[F]
       check = new Check[F]
       sha256 = new Sha256[F]

@@ -10,7 +10,7 @@ import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import core._
 
-class Check[F[_]: Sync] {
+class Check[F[_]: Sync: Console] {
 
   def checkDir(dir: File): F[List[CheckedFile]] = {
     val regularFiles: F[List[File]] =
@@ -82,8 +82,7 @@ class Check[F[_]: Sync] {
           }
           .map(_.show)
       )
-      .flatTap(list => list.traverse(item => Sync[F].delay(println(item))))
-      .void
+      .flatMap(list => list.traverse_(item => Console[F].putStrLn(item)))
 
 }
 

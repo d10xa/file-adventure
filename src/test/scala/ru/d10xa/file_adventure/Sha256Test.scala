@@ -4,11 +4,9 @@ import better.files._
 import cats.effect.IO
 import ru.d10xa.file_adventure.Sha256.recursiveHash
 import ru.d10xa.file_adventure.core.Sha256Hash
-import ru.d10xa.file_adventure.fs.Checksum
 
 class Sha256Test extends TestBase {
-  implicit private val checksum: Checksum[IO] =
-    Checksum.make[IO].unsafeRunSync()
+
   test("sha for dir with one file equal to hash of file") {
     recursiveHash[IO](File("src/test/file/one_file_dir"))
       .unsafeRunSync()

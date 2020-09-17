@@ -8,13 +8,15 @@ import ru.d10xa.file_adventure.fs.Checksum
 
 import scala.util.chaining._
 
-class Minus[F[_]: Sync: Checksum] {
+class Minus[F[_]: Sync: Checksum: Console] {
 
   def run(c: MinusCommand): F[Unit] =
-    minus(File(c.left), File(c.right)).map(
-      _.map(_.toJava.getAbsolutePath)
-        .foreach(println(_))
-    )
+    for {
+      files <- minus(File(c.left), File(c.right))
+      strings = files.map(_.toJava.getAbsolutePath)
+      _ <- strings.toList.traverse_(Console[F].putStrLn)
+    } yield ()
+
   def minus(left: File, right: File): F[Set[File]] =
     for {
       leftWithSum <- dirToHashedFiles(left)

@@ -8,9 +8,9 @@ import ru.d10xa.file_adventure.Main.sortHashes
 import ru.d10xa.file_adventure.Main.sortedHashesToSingleHash
 import ru.d10xa.file_adventure.fs.Checksum
 
-class Sha256[F[_]: Sync: Checksum] {
+class Sha256[F[_]: Sync: Checksum: Console] {
   def run(c: Sha256Command): F[Unit] =
-    Sha256.recursiveHash(File(c.dir)).map(_.show).map(println) // TODO
+    Sha256.recursiveHash(File(c.dir)).map(_.show).flatMap(Console[F].putStrLn)
 }
 
 object Sha256 {
