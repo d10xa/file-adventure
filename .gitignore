@@ -4,6 +4,7 @@
 .idea/
 .metals/
 bin/
+exclude/
 out/IntelliJ-BSP*
 project/project/
 project/target/
