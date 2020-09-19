@@ -52,29 +52,14 @@ class Check[F[_]: Sync: Checksum: Console] {
     } yield a ++ b
   }
 
-  final def checkDirs(
-    dirsToCheck: DirsToCheck
-  ): F[List[CheckedFile]] = {
-    type ResultType = (List[CheckedFile], List[File])
-    val dirs = dirsToCheck.dirs
-    val tailRecResult = Monad[F].tailRecM((List.empty[CheckedFile], dirs)) {
-      case (checkedFiles, dirs) =>
-        dirs match {
-          case xs if xs.isEmpty =>
-            val res = (checkedFiles, dirs)
-            res.asRight[ResultType].pure[F]
-          case x :: xs =>
-            checkDir(x).map(xf =>
-              (checkedFiles ++ xf, x.list.filter(_.isDirectory).toList ++ xs)
-                .asLeft[ResultType]
-            )
-        }
-    }
-    tailRecResult.map(_._1)
-  }
+  def checkDirs(dirs: List[File]): F[List[CheckedFile]] =
+    dirs
+      .foldLeftM(List.empty[CheckedFile]) {
+        case (acc, f) => checkDir(f).map(acc ++ _)
+      }
 
   def run(c: CheckCommand): F[Unit] =
-    checkDirs(DirsToCheck(File(c.dir) :: Nil))
+    checkDirs(File(c.dir) :: Nil)
       .map(list =>
         list
           .filter {
@@ -123,6 +108,20 @@ object FileToCheck {
 
 sealed trait CheckedFile {
   def valid: Boolean
+}
+
+object CheckedFile {
+  implicit val showCheckedFile: Show[CheckedFile] =
+    Show.show {
+      case e @ ExistentCheckedFile(file, expectedHash, _) if e.valid =>
+        s"OK ${file.toJava.getAbsolutePath} ${expectedHash.show}"
+      case ExistentCheckedFile(file, expectedHash, actualHash) =>
+        s"FAIL ${file.toJava.getAbsolutePath} ${expectedHash.show} != ${actualHash.show}"
+      case FileSystemMissingFile(file, expectedHash) =>
+        s"FILE NOT FOUND ${file.toJava.getAbsolutePath}, ${expectedHash.show}"
+      case UntrackedFile(file, actualHash) =>
+        s"UNTRACKED FILE ${file.toJava.getAbsolutePath}, ${actualHash.show}"
+    }
 }
 
 final case class ExistentCheckedFile(

@@ -24,18 +24,6 @@ object core {
       } yield exists && regularFile
   }
 
-  implicit val showCheckedFile: Show[CheckedFile] =
-    Show.show {
-      case e @ ExistentCheckedFile(file, expectedHash, _) if e.valid =>
-        s"OK ${file.toJava.getAbsolutePath} ${expectedHash.show}"
-      case ExistentCheckedFile(file, expectedHash, actualHash) =>
-        s"FAIL ${file.toJava.getAbsolutePath} ${expectedHash.show} != ${actualHash.show}"
-      case FileSystemMissingFile(file, expectedHash) =>
-        s"FILE NOT FOUND ${file.toJava.getAbsolutePath}, ${expectedHash.show}"
-      case UntrackedFile(file, actualHash) =>
-        s"UNTRACKED FILE ${file.toJava.getAbsolutePath}, ${actualHash.show}"
-    }
-
   // TODO rename to Sha256Sum
   final case class Sha256Hash(value: String) extends AnyRef {
     def asBigInteger: BigInt = new BigInteger(value, 16)
