@@ -1,29 +1,31 @@
 ThisBuild / scalaVersion := "2.13.3"
-ThisBuild / version := "0.1.0"
 ThisBuild / organization := "ru.d10xa"
 
-lazy val root = (project in file(".")).settings(
-  name := "file-adventure",
-  assemblyJarName in assembly := "file-adventure.jar",
-  mainClass in assembly := Some("ru.d10xa.file_adventure.Main"),
-  test in assembly := {},
-  scalacOptions := Seq(
-    "-encoding",
-    "UTF-8", // source files are in UTF-8
-    "-deprecation", // warn about use of deprecated APIs
-    "-unchecked", // warn about unchecked type parameters
-    "-feature", // warn about misused language features
-    "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
-    "-Xlint", // enable handy linter warnings
-    "-Wvalue-discard",
-    "-Xfatal-warnings" // turn compiler warnings into errors
+lazy val root = (project in file("."))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "file-adventure",
+    assemblyJarName in assembly := "file-adventure.jar",
+    mainClass in assembly := Some("ru.d10xa.file_adventure.Main"),
+    test in assembly := {},
+    scalacOptions := Seq(
+      "-encoding",
+      "UTF-8", // source files are in UTF-8
+      "-deprecation", // warn about use of deprecated APIs
+      "-unchecked", // warn about unchecked type parameters
+      "-feature", // warn about misused language features
+      "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
+      "-Xlint", // enable handy linter warnings
+      "-Wvalue-discard",
+      "-Xfatal-warnings" // turn compiler warnings into errors
 //    "-Xlint:byname-implicit" // https://github.com/scala/bug/issues/12072
-  ),
-  addCompilerPlugin(
-    ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)
-  ),
-  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
-)
+    ),
+    addCompilerPlugin(
+      ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)
+    ),
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+  )
+  .enablePlugins(GitVersioning)
 
 wartremoverErrors in (Compile, compile) ++= Seq(
   Wart.AnyVal,
@@ -73,3 +75,8 @@ libraryDependencies += "io.circe" %% "circe-config" % "0.8.0"
 libraryDependencies += "io.circe" %% "circe-generic" % "0.13.0"
 libraryDependencies += "com.monovore" %% "decline" % "1.2.0"
 libraryDependencies += "com.monovore" %% "decline-effect" % "1.2.0"
+
+lazy val commonSettings = Seq(
+  bintrayVcsUrl := Some("https://github.com/d10xa/file-adventure.git"),
+  licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
+)
