@@ -28,7 +28,7 @@ object Context {
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
       implicit0(console: Console[F]) <- Console.make[F]
       progressBuilder: ProgressBuilder[F] <- Progress.builder[F]
-      create = new Create[F]
+      create = new Create[F](progressBuilder)
       check = new Check[F]
       sha256 = new Sha256[F](progressBuilder)
       minus = new Minus[F](progressBuilder)
