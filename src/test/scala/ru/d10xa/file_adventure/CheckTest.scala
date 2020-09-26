@@ -19,7 +19,7 @@ class CheckTest extends TestBase {
     file.valid shouldBe false
   }
 
-  def checkDir(d: File): List[CheckedFile] =
-    new Check[IO].checkDir(d).unsafeRunSync()
+  def checkDir(d: File): Vector[CheckedFile] =
+    new Check[IO](fs).checkDir(d).unsafeRunSync()
 
 }

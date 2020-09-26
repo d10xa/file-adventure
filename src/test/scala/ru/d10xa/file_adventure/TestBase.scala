@@ -6,6 +6,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import ru.d10xa.file_adventure.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
+import ru.d10xa.file_adventure.fs.Fs
 
 abstract class TestBase extends AnyFunSuite with Matchers {
   implicit val checksum: Checksum[IO] =
@@ -22,4 +23,5 @@ abstract class TestBase extends AnyFunSuite with Matchers {
         override def stepBy(n: Long): IO[Unit] = IO.unit
       })
   }
+  val fs: Fs[IO] = Fs.make[IO].unsafeRunSync()
 }

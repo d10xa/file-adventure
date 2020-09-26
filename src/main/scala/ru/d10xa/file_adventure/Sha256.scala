@@ -1,5 +1,8 @@
 package ru.d10xa.file_adventure
 
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import better.files._
 import cats.effect.Sync
 import cats.implicits._
@@ -8,13 +11,15 @@ import ru.d10xa.file_adventure.Main.sortHashes
 import ru.d10xa.file_adventure.Main.sortedHashesToSingleHash
 import ru.d10xa.file_adventure.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
+import ru.d10xa.file_adventure.fs.Fs
 
 class Sha256[F[_]: Sync: Checksum: Console](
+  fs: Fs[F],
   progressBuilder: ProgressBuilder[F]
 ) {
   def run(c: Sha256Command): F[Unit] =
     Sha256
-      .recursiveHash(progressBuilder, File(c.dir))
+      .recursiveHash(fs, progressBuilder, Paths.get(c.dir))
       .map(_.show)
       .flatMap(Console[F].putStrLn)
 }
@@ -34,12 +39,13 @@ object Sha256 {
     } yield result
 
   def recursiveHash[F[_]: Sync: Checksum](
+    fs: Fs[F],
     progressBuilder: ProgressBuilder[F],
-    f: File
+    f: Path
   ): F[Sha256Hash] =
-    filesToSingleHash(
-      progressBuilder,
-      f.list(core.filePredicate).toList.toVector
-    )
+    for {
+      files <- fs.listRecursive(f, core.filePredicate)
+      res <- filesToSingleHash(progressBuilder, files)
+    } yield res
 
 }

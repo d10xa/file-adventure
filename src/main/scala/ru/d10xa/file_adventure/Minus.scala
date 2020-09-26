@@ -7,10 +7,10 @@ import cats.effect.Bracket
 import cats.implicits._
 import ru.d10xa.file_adventure.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
-
-import scala.util.chaining._
+import ru.d10xa.file_adventure.fs.Fs
 
 class Minus[F[_]: Monad: Bracket[*[_], Throwable]: Checksum: Console](
+  fs: Fs[F],
   progressBuilder: ProgressBuilder[F]
 ) {
 
@@ -39,10 +39,9 @@ class Minus[F[_]: Monad: Bracket[*[_], Throwable]: Checksum: Console](
           .map(s => sumToFile(s))
     } yield result
 
-  val listFiles: File => Vector[File] = _.list(core.filePredicate).toVector
-
   def dirToHashedFiles(file: File): F[Vector[FileAndHash]] =
-    listFiles(file).pipe(
-      core.filesToHashesWithProgressBar[F](progressBuilder, _)
-    )
+    fs.listRecursive(file.path, core.filePredicate)
+      .flatMap(
+        core.filesToHashesWithProgressBar[F](progressBuilder, _)
+      )
 }

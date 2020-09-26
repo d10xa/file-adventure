@@ -1,6 +1,8 @@
 package ru.d10xa.file_adventure
 
 import java.math.BigInteger
+import java.nio.file.Files
+import java.nio.file.Path
 
 import better.files.File
 import cats._
@@ -11,6 +13,7 @@ import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import ru.d10xa.file_adventure.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.Progress.InitParams
 import ru.d10xa.file_adventure.fs.Checksum
+import ru.d10xa.file_adventure.implicits._
 
 object core {
 
@@ -58,11 +61,12 @@ object core {
       }
   }
 
-  def filePredicate(f: File): Boolean =
+  def filePredicate(f: Path): Boolean =
     Seq(
-      !f.isHidden,
-      !f.name.startsWith("."),
-      f.isRegularFile
+      !Files.isHidden(f),
+      Option(f.getFileName).exists(!_.show.startsWith(".")),
+      Files.isRegularFile(f),
+      Files.exists(f) // files listed but not exists in folder '.@__thumb/'
     ).forall(identity)
 
   def filesToHashesWithProgressBar[

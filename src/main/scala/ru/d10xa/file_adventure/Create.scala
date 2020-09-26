@@ -11,12 +11,13 @@ import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.FileWrite
+import ru.d10xa.file_adventure.fs.Fs
+import ru.d10xa.file_adventure.implicits._
 
 class Create[F[_]: Monad: FileWrite: Checksum: Bracket[*[_], Throwable]](
+  fs: Fs[F],
   progressBuilder: ProgressBuilder[F]
 ) {
-
-  implicit val showPath: Show[Path] = Show.fromToString
 
   def calculateSums(files: Vector[File]): F[Vector[FileAndHash]] =
     core.filesToHashesWithProgressBar(progressBuilder, files)
@@ -41,16 +42,19 @@ class Create[F[_]: Monad: FileWrite: Checksum: Bracket[*[_], Throwable]](
     }
     val dir = File(c.dir)
 
-    if (c.oneFile) {
-      val x: Vector[File] = dir.list(core.filePredicate).toVector
-      createShaFiles(dir, x)
-    } else {
-      val x = dir.list(core.filePredicate).toVector.groupBy(_.parent)
-      x.toVector.traverse_ {
+    def traverseCreate(x: Vector[(File, Vector[File])]): F[Unit] =
+      x.traverse_ {
         case (parent: File, files: Vector[File]) =>
           createShaFiles(parent, files)
       }
-    }
+
+    if (c.oneFile)
+      fs.listRecursive(dir.path, core.filePredicate)
+        .flatMap(createShaFiles(dir, _))
+    else
+      fs.listRecursive(dir.path, core.filePredicate)
+        .map(_.groupBy(_.parent).toVector)
+        .flatMap(traverseCreate)
   }
 
 }

@@ -1,6 +1,7 @@
 package ru.d10xa.file_adventure
 
-import better.files._
+import java.nio.file.Paths
+
 import cats.effect.IO
 import ru.d10xa.file_adventure.Sha256.recursiveHash
 import ru.d10xa.file_adventure.core.Sha256Hash
@@ -8,7 +9,11 @@ import ru.d10xa.file_adventure.core.Sha256Hash
 class Sha256Test extends TestBase {
 
   test("sha for dir with one file equal to hash of file") {
-    recursiveHash[IO](progressBuilder, File("src/test/file/one_file_dir"))
+    recursiveHash[IO](
+      fs,
+      progressBuilder,
+      Paths.get("src/test/file/one_file_dir")
+    )
       .unsafeRunSync()
       .shouldEqual(
         Sha256Hash(
@@ -17,7 +22,11 @@ class Sha256Test extends TestBase {
       )
   }
   test("sha for two files") {
-    recursiveHash[IO](progressBuilder, File("src/test/file/two_file_dir"))
+    recursiveHash[IO](
+      fs,
+      progressBuilder,
+      Paths.get("src/test/file/two_file_dir")
+    )
       .unsafeRunSync()
       .shouldEqual(
         Sha256Hash(

@@ -1,7 +1,5 @@
 package ru.d10xa.file_adventure
 
-import java.nio.file.Path
-
 import better.files.File
 import cats._
 import cats.effect.Sync
@@ -10,34 +8,35 @@ import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.fs.Checksum
 import core._
+import ru.d10xa.file_adventure.fs.Fs
 
-class Check[F[_]: Sync: Checksum: Console] {
+class Check[F[_]: Sync: Checksum: Console](fs: Fs[F]) {
 
-  def checkDir(dir: File): F[List[CheckedFile]] = {
-    val regularFiles: F[List[File]] =
-      Sync[F].delay(dir.list.toList).map(_.filter(core.filePredicate))
+  def checkDir(dir: File): F[Vector[CheckedFile]] = {
+    val regularFiles: F[Vector[File]] =
+      fs.listRecursive(dir.path, core.filePredicate)
 
     val file = File(dir, FILESUM_CONSTANT_NAME)
 
-    val filesToCheck: F[List[FileToCheck]] =
+    val filesToCheck: F[Vector[FileToCheck]] =
       file.fileExistsF
-        .ifM[List[FileToCheck]](
+        .ifM[Vector[FileToCheck]](
           FileToCheck.readFromSumFile(file),
-          List.empty[FileToCheck].pure[F]
+          Vector.empty[FileToCheck].pure[F]
         )
 
-    val checkedFiles: F[List[CheckedFile]] =
+    val checkedFiles: F[Vector[CheckedFile]] =
       filesToCheck.flatMap(_.traverse(_.check()))
 
     val fileNamesFromSumFile: F[Set[String]] =
       filesToCheck.map(_.map(_.file.name).toSet)
 
-    def toUntracked(files: List[File]): F[List[UntrackedFile]] =
+    def toUntracked(files: Vector[File]): F[Vector[UntrackedFile]] =
       files.traverse(file =>
         Checksum[F].sha256(file.path).map(hash => UntrackedFile(file, hash))
       )
 
-    val untrackedFiles: F[List[UntrackedFile]] = regularFiles
+    val untrackedFiles: F[Vector[UntrackedFile]] = regularFiles
       .flatMap { files =>
         files
           .filterA(file =>
@@ -52,14 +51,14 @@ class Check[F[_]: Sync: Checksum: Console] {
     } yield a ++ b
   }
 
-  def checkDirs(dirs: List[File]): F[List[CheckedFile]] =
+  def checkDirs(dirs: Vector[File]): F[Vector[CheckedFile]] =
     dirs
-      .foldLeftM(List.empty[CheckedFile]) {
+      .foldLeftM(Vector.empty[CheckedFile]) {
         case (acc, f) => checkDir(f).map(acc ++ _)
       }
 
   def run(c: CheckCommand): F[Unit] =
-    checkDirs(File(c.dir) :: Nil)
+    checkDirs(Vector(File(c.dir)))
       .map(list =>
         list
           .filter {
@@ -72,7 +71,7 @@ class Check[F[_]: Sync: Checksum: Console] {
 
 }
 
-final case class DirsToCheck(dirs: List[File]) {
+final case class DirsToCheck(dirs: Vector[File]) {
   require(
     dirs.forall(_.isDirectory),
     "DirsToCheck must be initialized only with directories"
@@ -80,8 +79,7 @@ final case class DirsToCheck(dirs: List[File]) {
 }
 
 final case class FileToCheck(file: File, expectedHash: Sha256Hash) {
-  implicit val catsShowForPath: Show[Path] = Show.fromToString[Path]
-
+  import ru.d10xa.file_adventure.implicits._
   require(
     file.isRegularFile,
     s"FileToCheck must be initialized only with files. (${file.path.show})"
@@ -100,10 +98,10 @@ object FileToCheck {
   def fileAndHashToFileToCheck(fileAndHash: FileAndHash): FileToCheck =
     FileToCheck(fileAndHash.regularFile, fileAndHash.hash)
 
-  def readFromSumFile[F[_]: Sync](file: File): F[List[FileToCheck]] =
-    file.lines.toList
+  def readFromSumFile[F[_]: Sync](file: File): F[Vector[FileToCheck]] =
+    file.lines.toVector
       .traverse(line => FileAndHash.fromLine(file.parent, line))
-      .map(list => Functor[List].lift(fileAndHashToFileToCheck _)(list))
+      .map(list => Functor[Vector].lift(fileAndHashToFileToCheck _)(list))
 }
 
 sealed trait CheckedFile {
