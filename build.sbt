@@ -8,7 +8,7 @@ lazy val root = (project in file("."))
     assemblyJarName in assembly := "file-adventure.jar",
     mainClass in assembly := Some("ru.d10xa.file_adventure.Main"),
     test in assembly := {},
-    scalacOptions := Seq(
+    scalacOptions ++= Seq(
       "-encoding",
       "UTF-8", // source files are in UTF-8
       "-deprecation", // warn about use of deprecated APIs
@@ -20,6 +20,10 @@ lazy val root = (project in file("."))
       "-Xfatal-warnings" // turn compiler warnings into errors
 //    "-Xlint:byname-implicit" // https://github.com/scala/bug/issues/12072
     ),
+    scalacOptions in (Compile, console) ~= {
+      _.filterNot(Set("-Xfatal-warnings"))
+    },
+    scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
     addCompilerPlugin(
       ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)
     ),
