@@ -1,8 +1,8 @@
 package ru.d10xa.file_adventure
 
 import java.nio.file.Path
+import java.nio.file.Paths
 
-import better.files._
 import cats._
 import cats.effect.Bracket
 import cats.implicits._
@@ -19,41 +19,42 @@ class Create[F[_]: Monad: FileWrite: Checksum: Bracket[*[_], Throwable]](
   progressBuilder: ProgressBuilder[F]
 ) {
 
-  def calculateSums(files: Vector[File]): F[Vector[FileAndHash]] =
+  def calculateSums(files: Vector[Path]): F[Vector[FileAndHash]] =
     core.filesToHashesWithProgressBar(progressBuilder, files)
 
-  val fahAsString: Path => FileAndHash => String = path => {
-    case FileAndHash(file, Sha256Hash(hash)) =>
-      s"${hash.show} *${path.relativize(file.path).show}"
+  private def traverseCreate(x: Vector[(Path, Vector[Path])]): F[Unit] =
+    x.traverse_ {
+      case (parent: Path, files: Vector[Path]) =>
+        createShaFiles(parent, files)
+    }
+
+  private def createShaFiles(parent: Path, files: Vector[Path]): F[Unit] = {
+    val content = calculateSums(files)
+      .map(v =>
+        v.map {
+          case FileAndHash(file, Sha256Hash(hash)) =>
+            s"${hash.show} *${parent.relativize(file).show}"
+        }
+      )
+      .map(_.mkString("\n"))
+
+    content.flatMap(c =>
+      FileWrite[F].writeString(
+        parent.resolve(core.FILESUM_CONSTANT_NAME),
+        c
+      )
+    )
   }
 
   def run(c: CreateCommand): F[Unit] = {
-
-    def createShaFiles(parent: File, files: Vector[File]): F[Unit] = {
-      val content = calculateSums(files)
-        .map(Functor[Vector].lift(fahAsString(parent.path)))
-        .map(_.mkString("\n"))
-      content.flatMap(c =>
-        FileWrite[F].writeString(
-          parent.path.resolve(core.FILESUM_CONSTANT_NAME),
-          c
-        )
-      )
-    }
-    val dir = File(c.dir)
-
-    def traverseCreate(x: Vector[(File, Vector[File])]): F[Unit] =
-      x.traverse_ {
-        case (parent: File, files: Vector[File]) =>
-          createShaFiles(parent, files)
-      }
+    val dir = Paths.get(c.dir)
 
     if (c.oneFile)
-      fs.listRecursive(dir.path, core.filePredicate)
+      fs.listRecursive(dir, core.filePredicate)
         .flatMap(createShaFiles(dir, _))
     else
-      fs.listRecursive(dir.path, core.filePredicate)
-        .map(_.groupBy(_.parent).toVector)
+      fs.listRecursive(dir, core.filePredicate)
+        .map(_.groupBy(_.getParent).toVector)
         .flatMap(traverseCreate)
   }
 

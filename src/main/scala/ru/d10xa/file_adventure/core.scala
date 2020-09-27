@@ -19,14 +19,6 @@ object core {
 
   val FILESUM_CONSTANT_NAME = ".sha256.sfv"
 
-  implicit class FileOps[F[_]: Sync](f: File) {
-    def fileExistsF: F[Boolean] =
-      for {
-        exists <- Sync[F].delay(f.exists)
-        regularFile <- Sync[F].delay(f.isRegularFile)
-      } yield exists && regularFile
-  }
-
   // TODO rename to Sha256Sum
   final case class Sha256Hash(value: String) extends AnyRef {
     def asBigInteger: BigInt = new BigInteger(value, 16)
@@ -39,21 +31,21 @@ object core {
     def fromString(str: String): Sha256Hash = Sha256Hash(sha256Hex(str))
   }
 
-  final case class FileAndHash(regularFile: File, hash: Sha256Hash) {
-    val asFileString: String = s"${hash.show} *${regularFile.name}"
+  final case class FileAndHash(regularFile: Path, hash: Sha256Hash) {
+    val asFileString: String = s"${hash.show} *${regularFile.show}"
   }
 
   object FileAndHash {
 
-    def fromFile[F[_]: Functor: Checksum](f: File): F[FileAndHash] =
+    def fromFile[F[_]: Functor: Checksum](f: Path): F[FileAndHash] =
       Checksum[F]
-        .sha256(f.path)
+        .sha256(f)
         .map(hash => FileAndHash(f, hash))
 
-    def fromLine[F[_]: Sync](parent: File, line: String): F[FileAndHash] =
+    def fromLine[F[_]: Sync](parent: Path, line: String): F[FileAndHash] =
       line.split(" [*,\\s]").toList match {
         case sum :: file :: Nil =>
-          FileAndHash(File(parent, file), Sha256Hash(sum)).pure[F]
+          FileAndHash(parent.resolve(file), Sha256Hash(sum)).pure[F]
         case xs =>
           Sync[F].raiseError(
             new IllegalArgumentException(xs.mkString("[", ",", "]"))
@@ -73,16 +65,21 @@ object core {
     F[_]: Monad: Checksum: Bracket[*[_], Throwable]
   ](
     progressBuilder: ProgressBuilder[F],
-    files: Vector[File]
+    files: Vector[Path]
   ): F[Vector[FileAndHash]] =
     progressBuilder
-      .build(InitParams("", files.foldLeft(0L)(_ + _.size)))
+      .build(
+        InitParams(
+          "",
+          files.foldLeft(0L) { case (acc, path) => acc + File(path).size }
+        )
+      )
       .use(progress =>
         files.traverse { file =>
           for {
-            _ <- progress.setExtraMessage(file.name)
+            _ <- progress.setExtraMessage(file.nameOrEmpty)
             h <- FileAndHash.fromFile[F](file)
-            _ <- progress.stepBy(file.size)
+            _ <- progress.stepBy(Files.size(file))
           } yield h
         }
       )

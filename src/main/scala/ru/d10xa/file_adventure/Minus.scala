@@ -1,6 +1,8 @@
 package ru.d10xa.file_adventure
 
-import better.files._
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import ru.d10xa.file_adventure.core.FileAndHash
 import cats._
 import cats.effect.Bracket
@@ -8,6 +10,7 @@ import cats.implicits._
 import ru.d10xa.file_adventure.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.Fs
+import ru.d10xa.file_adventure.implicits._
 
 class Minus[F[_]: Monad: Bracket[*[_], Throwable]: Checksum: Console](
   fs: Fs[F],
@@ -16,12 +19,12 @@ class Minus[F[_]: Monad: Bracket[*[_], Throwable]: Checksum: Console](
 
   def run(c: MinusCommand): F[Unit] =
     for {
-      files <- minus(File(c.left), File(c.right))
-      strings = files.map(_.toJava.getAbsolutePath)
+      files <- minus(Paths.get(c.left), Paths.get(c.right))
+      strings = files.map(_.toAbsolutePath.show)
       _ <- strings.toList.traverse_(Console[F].putStrLn)
     } yield ()
 
-  def minus(left: File, right: File): F[Set[File]] =
+  def minus(left: Path, right: Path): F[Set[Path]] =
     for {
       leftWithSum <- dirToHashedFiles(left)
       rightWithSum <- dirToHashedFiles(right)
@@ -39,9 +42,9 @@ class Minus[F[_]: Monad: Bracket[*[_], Throwable]: Checksum: Console](
           .map(s => sumToFile(s))
     } yield result
 
-  def dirToHashedFiles(file: File): F[Vector[FileAndHash]] =
-    fs.listRecursive(file.path, core.filePredicate)
-      .flatMap(
-        core.filesToHashesWithProgressBar[F](progressBuilder, _)
+  def dirToHashedFiles(file: Path): F[Vector[FileAndHash]] =
+    fs.listRecursive(file, core.filePredicate)
+      .flatMap(paths =>
+        core.filesToHashesWithProgressBar[F](progressBuilder, paths)
       )
 }

@@ -3,7 +3,6 @@ package ru.d10xa.file_adventure
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import better.files._
 import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.core.Sha256Hash
@@ -28,7 +27,7 @@ object Sha256 {
 
   def filesToSingleHash[F[_]: Sync: Checksum](
     progressBuilder: ProgressBuilder[F],
-    files: Vector[File]
+    files: Vector[Path]
   ): F[Sha256Hash] =
     for {
       fileAndHashes <-

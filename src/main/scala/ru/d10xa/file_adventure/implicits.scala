@@ -1,11 +1,39 @@
 package ru.d10xa.file_adventure
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 import cats.Show
+import cats.effect.Sync
+import cats.implicits._
 
 trait CatsInstances {
   implicit val catsShowForPath: Show[Path] = Show.fromToString
 }
 
-object implicits extends CatsInstances
+trait JavaNioImplicits extends CatsInstances {
+  implicit class PathOpsF[F[_]: Sync](private val f: Path) {
+    def fileExistsF: F[Boolean] =
+      for {
+        exists <- Sync[F].delay(Files.exists(f))
+        regularFile <- Sync[F].delay(Files.isRegularFile(f))
+      } yield exists && regularFile
+    def parentF: F[Path] =
+      Either
+        .fromOption(
+          Option(f.getParent),
+          new IllegalArgumentException(
+            s"parent folder not available: ${f.show}"
+          )
+        )
+        .liftTo[F]
+  }
+
+  implicit class PathOps(private val f: Path) {
+    def nameOrEmpty: String =
+      Option(f.getFileName).map(_.show).getOrElse("")
+  }
+
+}
+
+object implicits extends CatsInstances with JavaNioImplicits
