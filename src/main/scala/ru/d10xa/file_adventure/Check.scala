@@ -1,5 +1,6 @@
 package ru.d10xa.file_adventure
 
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -33,7 +34,7 @@ class Check[F[_]: Sync: Checksum: Console](fs: Fs[F]) {
       filesToCheck.flatMap(_.traverse(_.check()))
 
     val fileNamesFromSumFile: F[Set[String]] =
-      filesToCheck.map(_.map(_.file.name).toSet)
+      filesToCheck.map(_.map(_.file.nameOrEmpty).toSet)
 
     def toUntracked(files: Vector[Path]): F[Vector[UntrackedFile]] =
       files.traverse(file =>
@@ -84,25 +85,37 @@ final case class DirsToCheck(dirs: Vector[File]) {
   )
 }
 
-final case class FileToCheck(file: File, expectedHash: Sha256Hash) {
+final case class FileToCheck(file: Path, expectedHash: Sha256Hash) {
   import ru.d10xa.file_adventure.implicits._
   require(
-    file.isRegularFile,
-    s"FileToCheck must be initialized only with files. (${file.path.show})"
+    Files.isRegularFile(file),
+    s"FileToCheck must be initialized only with files. (${file.show})"
   )
-  def check[F[_]: Sync: Checksum](): F[CheckedFile] =
-    if (!file.exists || !file.isRegularFile)
-      FileSystemMissingFile(file, expectedHash).pure[F].widen
-    else
+  def check[F[_]: Sync: Checksum](): F[CheckedFile] = {
+    val isMissing = for {
+      e <- file.existsF
+      r <- file.isRegularFileF
+    } yield !e || !r
+    val missingCase =
+      Sync[F]
+        .delay(FileSystemMissingFile(file, expectedHash))
+        .widen[CheckedFile]
+    val okCase =
       Checksum[F]
-        .sha256(file.path)
+        .sha256(file)
         .map(sha => ExistentCheckedFile(file, expectedHash, sha))
+        .widen[CheckedFile]
+    isMissing.ifM[CheckedFile](missingCase, okCase)
+  }
 }
 
 object FileToCheck {
 
-  def fileAndHashToFileToCheck(fileAndHash: FileAndHash): FileToCheck =
-    FileToCheck(fileAndHash.regularFile, fileAndHash.hash)
+  def fileAndHashToFileToCheck(
+    parent: Path,
+    fileAndHash: FileAndHash
+  ): FileToCheck =
+    FileToCheck(parent.resolve(fileAndHash.regularFile), fileAndHash.hash)
 
   def linesToFtc[F[_]: Sync](
     file: Path,
@@ -110,9 +123,12 @@ object FileToCheck {
   ): F[Vector[FileToCheck]] =
     lines
       .traverse(line =>
-        file.parentF.flatMap(parent => FileAndHash.fromLine(parent, line))
+        file.parentF.flatMap(parent =>
+          FileAndHash
+            .fromLine(parent, line)
+            .map(fileAndHash => fileAndHashToFileToCheck(parent, fileAndHash))
+        )
       )
-      .map(list => Functor[Vector].lift(fileAndHashToFileToCheck _)(list))
 
   def readFromSumFile[F[_]: Sync](file: Path): F[Vector[FileToCheck]] =
     Sync[F].delay(File(file).lines.toVector).flatMap(linesToFtc(file, _))
@@ -127,18 +143,18 @@ object CheckedFile {
   implicit val showCheckedFile: Show[CheckedFile] =
     Show.show {
       case e @ ExistentCheckedFile(file, expectedHash, _) if e.valid =>
-        s"OK ${file.toJava.getAbsolutePath} ${expectedHash.show}"
+        s"OK ${file.show} ${expectedHash.show}"
       case ExistentCheckedFile(file, expectedHash, actualHash) =>
-        s"FAIL ${file.toJava.getAbsolutePath} ${expectedHash.show} != ${actualHash.show}"
+        s"FAIL ${file.show} ${expectedHash.show} != ${actualHash.show}"
       case FileSystemMissingFile(file, expectedHash) =>
-        s"FILE NOT FOUND ${file.toJava.getAbsolutePath}, ${expectedHash.show}"
+        s"FILE NOT FOUND ${file.show}, ${expectedHash.show}"
       case UntrackedFile(file, actualHash) =>
-        s"UNTRACKED FILE ${file.toJava.getAbsolutePath}, ${actualHash.show}"
+        s"UNTRACKED FILE ${file.show}, ${actualHash.show}"
     }
 }
 
 final case class ExistentCheckedFile(
-  file: File,
+  file: Path,
   expectedHash: Sha256Hash,
   actualHash: Sha256Hash
 ) extends CheckedFile {
@@ -146,14 +162,14 @@ final case class ExistentCheckedFile(
 }
 
 final case class FileSystemMissingFile(
-  file: File,
+  file: Path,
   expectedHash: Sha256Hash
 ) extends CheckedFile {
   override def valid: Boolean = false
 }
 
 final case class UntrackedFile(
-  file: File,
+  file: Path,
   actualHash: Sha256Hash
 ) extends CheckedFile {
   override def valid: Boolean = false

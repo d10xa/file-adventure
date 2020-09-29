@@ -45,7 +45,8 @@ object core {
     def fromLine[F[_]: Sync](parent: Path, line: String): F[FileAndHash] =
       line.split(" [*,\\s]").toList match {
         case sum :: file :: Nil =>
-          FileAndHash(parent.resolve(file), Sha256Hash(sum)).pure[F]
+          FileAndHash(parent.relativize(parent.resolve(file)), Sha256Hash(sum))
+            .pure[F]
         case xs =>
           Sync[F].raiseError(
             new IllegalArgumentException(xs.mkString("[", ",", "]"))

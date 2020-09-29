@@ -27,11 +27,15 @@ trait JavaNioImplicits extends CatsInstances {
           )
         )
         .liftTo[F]
+    def existsF: F[Boolean] = Sync[F].delay(Files.exists(f))
+    def isRegularFileF: F[Boolean] = Sync[F].delay(Files.isRegularFile(f))
   }
 
   implicit class PathOps(private val f: Path) {
     def nameOrEmpty: String =
       Option(f.getFileName).map(_.show).getOrElse("")
+    def absolutePathUnsafe: String =
+      f.toAbsolutePath.show
   }
 
 }
