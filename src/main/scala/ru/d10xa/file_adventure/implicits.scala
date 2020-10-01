@@ -50,6 +50,11 @@ trait ProgressInstances extends JavaNioImplicits {
       override def message(a: FileToCheck): F[String] =
         a.file.nameOrEmpty.pure[F]
     }
+  implicit def javaNioPathProgressInfo[F[_]: Sync]: ProgressInfo[F, Path] =
+    new ProgressInfo[F, Path] {
+      override def step(p: Path): F[Long] = Sync[F].delay(Files.size(p))
+      override def message(p: Path): F[String] = p.nameOrEmpty.pure[F]
+    }
 }
 
 object implicits

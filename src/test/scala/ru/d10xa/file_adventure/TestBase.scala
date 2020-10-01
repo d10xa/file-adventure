@@ -14,7 +14,7 @@ abstract class TestBase extends AnyFunSuite with Matchers {
     Checksum.make[IO].unsafeRunSync()
   implicit val console: Console[IO] =
     Console.make[IO].unsafeRunSync()
-  val progressBuilder: ProgressBuilder[IO] = new ProgressBuilder[IO] {
+  implicit val progressBuilder: ProgressBuilder[IO] = new ProgressBuilder[IO] {
     override def build(
       params: Progress.InitParams
     ): Resource[IO, Progress[IO]] =

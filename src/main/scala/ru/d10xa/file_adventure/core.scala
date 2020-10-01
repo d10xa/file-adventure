@@ -4,16 +4,12 @@ import java.math.BigInteger
 import java.nio.file.Files
 import java.nio.file.Path
 
-import better.files.File
 import cats._
-import cats.effect.Bracket
 import cats.effect.Sync
 import cats.implicits._
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.implicits._
-import ru.d10xa.file_adventure.progress.Progress.InitParams
-import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 
 object core {
 
@@ -61,28 +57,5 @@ object core {
       Files.isRegularFile(f),
       Files.exists(f) // files listed but not exists in folder '.@__thumb/'
     ).forall(identity)
-
-  def filesToHashesWithProgressBar[
-    F[_]: Monad: Checksum: Bracket[*[_], Throwable]
-  ](
-    progressBuilder: ProgressBuilder[F],
-    files: Vector[Path]
-  ): F[Vector[FileAndHash]] =
-    progressBuilder
-      .build(
-        InitParams(
-          "",
-          files.foldLeft(0L) { case (acc, path) => acc + File(path).size }
-        )
-      )
-      .use(progress =>
-        files.traverse { file =>
-          for {
-            _ <- progress.setExtraMessage(file.nameOrEmpty)
-            h <- FileAndHash.fromFile[F](file)
-            _ <- progress.stepBy(Files.size(file))
-          } yield h
-        }
-      )
 
 }

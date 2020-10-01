@@ -11,7 +11,6 @@ class Sha256Test extends TestBase {
   test("sha for dir with one file equal to hash of file") {
     recursiveHash[IO](
       fs,
-      progressBuilder,
       Paths.get("src/test/file/one_file_dir")
     )
       .unsafeRunSync()
@@ -24,7 +23,6 @@ class Sha256Test extends TestBase {
   test("sha for two files") {
     recursiveHash[IO](
       fs,
-      progressBuilder,
       Paths.get("src/test/file/two_file_dir")
     )
       .unsafeRunSync()

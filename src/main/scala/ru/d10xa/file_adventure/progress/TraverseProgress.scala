@@ -3,7 +3,6 @@ package ru.d10xa.file_adventure.progress
 import cats.implicits._
 import cats.Traverse
 import cats.effect.Bracket
-import cats.effect.Sync
 import ru.d10xa.file_adventure.progress.Progress.InitParams
 import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 
@@ -23,15 +22,13 @@ object TraverseProgress {
 
   implicit final class TraverseProgressOps[
     T[_]: Traverse,
-    F[_]: Sync: Bracket[*[_], Throwable],
+    F[_]: ProgressBuilder: Bracket[*[_], Throwable],
     A,
     B
   ](private val a: T[A])(implicit progressInfo: ProgressInfo[F, A]) {
     def traverseWithProgress(f: A => F[B]): F[T[B]] =
-      Progress
-        .builder[F]
-        .map(make[F](_))
-        .flatMap(_.traverseWithProgress(a, f))
+      make[F](ProgressBuilder[F])
+        .traverseWithProgress(a, f)
   }
 
   def make[F[_]: Bracket[*[_], Throwable]](

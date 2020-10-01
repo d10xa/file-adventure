@@ -14,9 +14,10 @@ import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.core._
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.implicits._
+import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.progress.TraverseProgress._
 
-class Check[F[_]: Sync: Checksum: Console](fs: Fs[F]) {
+class Check[F[_]: Sync: ProgressBuilder: Checksum: Console](fs: Fs[F]) {
 
   def checkDir(dir: Path): F[Vector[CheckedFile]] = {
     val regularFiles: F[Vector[Path]] =

@@ -16,6 +16,11 @@ object Progress {
     def build(params: InitParams): Resource[F, Progress[F]]
   }
 
+  object ProgressBuilder {
+    def apply[F[_]](implicit instance: ProgressBuilder[F]): ProgressBuilder[F] =
+      instance
+  }
+
   final case class InitParams(task: String, initialMax: Long)
 
   private def toProgress[F[_]: Sync](pb: ProgressBar): F[Progress[F]] =

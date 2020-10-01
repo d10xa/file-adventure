@@ -29,11 +29,11 @@ object Context {
       implicit0(checksum: Checksum[F]) <- Checksum.make[F]
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
       implicit0(console: Console[F]) <- Console.make[F]
-      progressBuilder: ProgressBuilder[F] <- Progress.builder[F]
+      implicit0(progressBuilder: ProgressBuilder[F]) <- Progress.builder[F]
       fs <- Fs.make[F]
-      create = new Create[F](fs, progressBuilder)
+      create = new Create[F](fs)
       check = new Check[F](fs)
-      sha256 = new Sha256[F](fs, progressBuilder)
-      minus = new Minus[F](fs, progressBuilder)
+      sha256 = new Sha256[F](fs)
+      minus = new Minus[F](fs)
     } yield new Context[F](create, check, sha256, minus)
 }
