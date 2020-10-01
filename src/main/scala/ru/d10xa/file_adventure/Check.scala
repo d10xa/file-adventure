@@ -32,7 +32,7 @@ class Check[F[_]: Sync: Checksum: Console](fs: Fs[F]) {
         )
 
     val checkedFiles: F[Vector[CheckedFile]] =
-      filesToCheck.flatMap(_.withProgress(_.check()))
+      filesToCheck.flatMap(_.traverseWithProgress(_.check()))
 
     val fileNamesFromSumFile: F[Set[String]] =
       filesToCheck.map(_.map(_.file.nameOrEmpty).toSet)

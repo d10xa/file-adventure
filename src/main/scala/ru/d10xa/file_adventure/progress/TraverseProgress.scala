@@ -21,17 +21,13 @@ trait ProgressInfo[F[_], A] {
 
 object TraverseProgress {
 
-  implicit final class TraverseProgressOps[T[_]: Traverse, F[_]: Sync: Bracket[
-    *[
-      _
-    ],
-    Throwable
-  ], A, B](private val a: T[A])(implicit
-    progressInfo: ProgressInfo[F, A]
-  ) {
-    def withProgress(
-      f: A => F[B]
-    ): F[T[B]] =
+  implicit final class TraverseProgressOps[
+    T[_]: Traverse,
+    F[_]: Sync: Bracket[*[_], Throwable],
+    A,
+    B
+  ](private val a: T[A])(implicit progressInfo: ProgressInfo[F, A]) {
+    def traverseWithProgress(f: A => F[B]): F[T[B]] =
       Progress
         .builder[F]
         .map(make[F](_))
