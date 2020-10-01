@@ -10,10 +10,10 @@ import cats.effect.Bracket
 import cats.effect.Sync
 import cats.implicits._
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
-import ru.d10xa.file_adventure.Progress.ProgressBuilder
-import ru.d10xa.file_adventure.Progress.InitParams
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.implicits._
+import ru.d10xa.file_adventure.progress.Progress.InitParams
+import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 
 object core {
 

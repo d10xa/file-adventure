@@ -8,7 +8,7 @@ import cats.implicits._
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.Main.sortHashes
 import ru.d10xa.file_adventure.Main.sortedHashesToSingleHash
-import ru.d10xa.file_adventure.Progress.ProgressBuilder
+import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.Fs
 

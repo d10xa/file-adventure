@@ -11,9 +11,10 @@ import cats.implicits._
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.fs.Checksum
-import core._
+import ru.d10xa.file_adventure.core._
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.implicits._
+import ru.d10xa.file_adventure.progress.TraverseProgress._
 
 class Check[F[_]: Sync: Checksum: Console](fs: Fs[F]) {
 
@@ -31,7 +32,7 @@ class Check[F[_]: Sync: Checksum: Console](fs: Fs[F]) {
         )
 
     val checkedFiles: F[Vector[CheckedFile]] =
-      filesToCheck.flatMap(_.traverse(_.check()))
+      filesToCheck.flatMap(_.withProgress(_.check()))
 
     val fileNamesFromSumFile: F[Set[String]] =
       filesToCheck.map(_.map(_.file.nameOrEmpty).toSet)

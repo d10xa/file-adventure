@@ -6,7 +6,7 @@ import java.nio.file.Paths
 import cats._
 import cats.effect.Bracket
 import cats.implicits._
-import ru.d10xa.file_adventure.Progress.ProgressBuilder
+import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.fs.Checksum

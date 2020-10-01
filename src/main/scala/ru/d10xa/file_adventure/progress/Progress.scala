@@ -1,4 +1,4 @@
-package ru.d10xa.file_adventure
+package ru.d10xa.file_adventure.progress
 
 import cats.effect.Resource
 import cats.effect.Sync
