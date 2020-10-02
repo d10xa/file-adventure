@@ -8,10 +8,21 @@ import scala.jdk.CollectionConverters._
 
 import cats.effect.Sync
 
-trait Fs[F[_]] {
+trait Fs[F[_]] extends PathSize[F] with PathList[F]
+
+trait PathSize[F[_]] {
+  def size(file: Path): F[Long]
+}
+
+object PathSize {
+  def apply[F[_]](implicit instance: PathSize[F]): PathSize[F] = instance
+}
+
+trait PathList[F[_]] {
   def listRecursive(dir: Path, predicate: Path => Boolean): F[Vector[Path]]
 }
 object Fs {
+  def apply[F[_]](implicit instance: Fs[F]): Fs[F] = instance
   def make[F[_]: Sync]: F[Fs[F]] =
     Sync[F].delay(new Fs[F] {
       override def listRecursive(
@@ -32,5 +43,8 @@ object Fs {
             .asScala
             .toVector
         )
+
+      override def size(file: Path): F[Long] = Sync[F].delay(Files.size(file))
+
     })
 }

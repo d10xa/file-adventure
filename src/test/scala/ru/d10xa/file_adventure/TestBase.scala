@@ -24,5 +24,5 @@ abstract class TestBase extends AnyFunSuite with Matchers {
         override def stepBy(n: Long): IO[Unit] = IO.unit
       })
   }
-  val fs: Fs[IO] = Fs.make[IO].unsafeRunSync()
+  implicit val fs: Fs[IO] = Fs.make[IO].unsafeRunSync()
 }

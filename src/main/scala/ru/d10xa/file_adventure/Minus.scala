@@ -15,13 +15,11 @@ import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.progress.TraverseProgress._
 
 class Minus[
-  F[_]: Sync: ProgressBuilder: Monad: Bracket[
+  F[_]: Sync: Fs: ProgressBuilder: Monad: Bracket[
     *[_],
     Throwable
   ]: Checksum: Console
-](
-  fs: Fs[F]
-) {
+] {
 
   def run(c: MinusCommand): F[Unit] =
     for {
@@ -49,7 +47,8 @@ class Minus[
     } yield result
 
   def dirToHashedFiles(file: Path): F[Vector[FileAndHash]] =
-    fs.listRecursive(file, core.filePredicate)
+    Fs[F]
+      .listRecursive(file, core.filePredicate)
       .flatMap(paths =>
         paths.traverseWithProgress(file => FileAndHash.fromFile[F](file))
       )

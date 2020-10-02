@@ -3,9 +3,11 @@ package ru.d10xa.file_adventure
 import java.nio.file.Files
 import java.nio.file.Path
 
+import cats.Applicative
 import cats.Show
 import cats.effect.Sync
 import cats.implicits._
+import ru.d10xa.file_adventure.fs.PathSize
 import ru.d10xa.file_adventure.progress.ProgressInfo
 
 trait CatsInstances {
@@ -42,17 +44,18 @@ trait JavaNioImplicits extends CatsInstances {
 }
 
 trait ProgressInstances extends JavaNioImplicits {
-  implicit def fileToCheckProgressInfo[F[_]: Sync]
+  implicit def fileToCheckProgressInfo[F[_]: PathSize: Applicative]
     : ProgressInfo[F, FileToCheck] =
     new ProgressInfo[F, FileToCheck] {
       override def step(a: FileToCheck): F[Long] =
-        Sync[F].delay(Files.size(a.file))
+        PathSize[F].size(a.file)
       override def message(a: FileToCheck): F[String] =
         a.file.nameOrEmpty.pure[F]
     }
-  implicit def javaNioPathProgressInfo[F[_]: Sync]: ProgressInfo[F, Path] =
+  implicit def javaNioPathProgressInfo[F[_]: PathSize: Applicative]
+    : ProgressInfo[F, Path] =
     new ProgressInfo[F, Path] {
-      override def step(p: Path): F[Long] = Sync[F].delay(Files.size(p))
+      override def step(p: Path): F[Long] = PathSize[F].size(p)
       override def message(p: Path): F[String] = p.nameOrEmpty.pure[F]
     }
 }

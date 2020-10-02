@@ -22,6 +22,6 @@ class CheckTest extends TestBase {
   }
 
   def checkDir(d: Path): Vector[CheckedFile] =
-    new Check[IO](fs).checkDir(d).unsafeRunSync()
+    new Check[IO]().checkDir(d).unsafeRunSync()
 
 }

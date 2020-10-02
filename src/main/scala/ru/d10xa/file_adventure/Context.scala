@@ -30,10 +30,10 @@ object Context {
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
       implicit0(console: Console[F]) <- Console.make[F]
       implicit0(progressBuilder: ProgressBuilder[F]) <- Progress.builder[F]
-      fs <- Fs.make[F]
-      create = new Create[F](fs)
-      check = new Check[F](fs)
-      sha256 = new Sha256[F](fs)
-      minus = new Minus[F](fs)
+      implicit0(fs: Fs[F]) <- Fs.make[F]
+      create = new Create[F]()
+      check = new Check[F]()
+      sha256 = new Sha256[F]()
+      minus = new Minus[F]()
     } yield new Context[F](create, check, sha256, minus)
 }

@@ -7,7 +7,7 @@ import ru.d10xa.file_adventure.implicits._
 
 class MinusTest extends TestBase {
   test("sha for dir with one file equal to hash of file") {
-    new Minus[IO](fs)
+    new Minus[IO]()
       .minus(
         Paths.get("src/test/file/minus/dir1"),
         Paths.get("src/test/file/minus/dir2")

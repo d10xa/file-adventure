@@ -16,9 +16,11 @@ import ru.d10xa.file_adventure.implicits._
 import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.progress.TraverseProgress._
 
-class Create[F[_]: Sync: ProgressBuilder: Monad: FileWrite: Checksum: Bracket[*[
+class Create[F[
   _
-], Throwable]](fs: Fs[F]) {
+]: Fs: Sync: ProgressBuilder: Monad: FileWrite: Checksum: Bracket[*[
+  _
+], Throwable]] {
 
   def calculateSums(files: Vector[Path]): F[Vector[FileAndHash]] =
     files.traverseWithProgress(f => FileAndHash.fromFile[F](f))
@@ -51,10 +53,12 @@ class Create[F[_]: Sync: ProgressBuilder: Monad: FileWrite: Checksum: Bracket[*[
     val dir = Paths.get(c.dir)
 
     if (c.oneFile)
-      fs.listRecursive(dir, core.filePredicate)
+      Fs[F]
+        .listRecursive(dir, core.filePredicate)
         .flatMap(createShaFiles(dir, _))
     else
-      fs.listRecursive(dir, core.filePredicate)
+      Fs[F]
+        .listRecursive(dir, core.filePredicate)
         .map(_.groupBy(_.getParent).toVector)
         .flatMap(traverseCreate)
   }
