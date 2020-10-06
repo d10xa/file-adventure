@@ -8,6 +8,7 @@ import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.progress.Progress
+import ru.d10xa.file_adventure.progress.TraverseProgress
 
 abstract class TestBase extends AnyFunSuite with Matchers {
   implicit val checksum: Checksum[IO] =
@@ -24,5 +25,7 @@ abstract class TestBase extends AnyFunSuite with Matchers {
         override def stepBy(n: Long): IO[Unit] = IO.unit
       })
   }
+  implicit val traverseProgress: TraverseProgress[IO] =
+    TraverseProgress.make[IO](progressBuilder)
   implicit val fs: Fs[IO] = Fs.make[IO].unsafeRunSync()
 }

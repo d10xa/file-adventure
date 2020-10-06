@@ -20,16 +20,17 @@ trait ProgressInfo[F[_], A] {
 
 object TraverseProgress {
 
-  implicit final class TraverseProgressOps[T[_]: Traverse, A](
-    private val a: T[A]
-  ) {
-    def traverseWithProgress[F[_]: ProgressBuilder: Bracket[
-      *[_],
-      Throwable
-    ], B](f: A => F[B])(implicit progressInfo: ProgressInfo[F, A]): F[T[B]] =
-      make[F](ProgressBuilder[F])
-        .traverseWithProgress(a, f)
+  trait TraverseProgressImplicits {
+    implicit class TraverseProgressOps[T[_]: Traverse, A](ta: T[A]) {
+      def traverseWithProgress[F[_]: TraverseProgress, B](
+        afb: A => F[B]
+      )(implicit progressInfo: ProgressInfo[F, A]): F[T[B]] =
+        TraverseProgress[F].traverseWithProgress(ta, afb)
+    }
   }
+
+  def apply[F[_]](implicit instance: TraverseProgress[F]): TraverseProgress[F] =
+    instance
 
   def make[F[_]: Bracket[*[_], Throwable]](
     progressBuilder: ProgressBuilder[F]

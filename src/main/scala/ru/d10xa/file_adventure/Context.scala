@@ -7,6 +7,7 @@ import cats.implicits._
 import ru.d10xa.file_adventure.progress.Progress
 import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Fs
+import ru.d10xa.file_adventure.progress.TraverseProgress
 
 class Context[F[_]](
   create: Create[F],
@@ -30,6 +31,8 @@ object Context {
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
       implicit0(console: Console[F]) <- Console.make[F]
       implicit0(progressBuilder: ProgressBuilder[F]) <- Progress.builder[F]
+      implicit0(traverseProgress: TraverseProgress[F]) =
+        TraverseProgress.make[F](progressBuilder)
       implicit0(fs: Fs[F]) <- Fs.make[F]
       create = new Create[F]()
       check = new Check[F]()

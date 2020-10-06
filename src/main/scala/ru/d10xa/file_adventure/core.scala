@@ -5,7 +5,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 import cats._
-import cats.effect.Sync
 import cats.implicits._
 import org.apache.commons.codec.digest.DigestUtils.sha256Hex
 import ru.d10xa.file_adventure.fs.Checksum
@@ -38,15 +37,17 @@ object core {
         .sha256(f)
         .map(hash => FileAndHash(f, hash))
 
-    def fromLine[F[_]: Sync](parent: Path, line: String): F[FileAndHash] =
+    def fromLine[F[_]: ApplicativeError[*[_], Throwable]](
+      parent: Path,
+      line: String
+    ): F[FileAndHash] =
       line.split(" [*,\\s]").toList match {
         case sum :: file :: Nil =>
           FileAndHash(parent.relativize(parent.resolve(file)), Sha256Hash(sum))
             .pure[F]
         case xs =>
-          Sync[F].raiseError(
-            new IllegalArgumentException(xs.mkString("[", ",", "]"))
-          )
+          new IllegalArgumentException(xs.mkString("[", ",", "]"))
+            .raiseError[F, FileAndHash]
       }
   }
 

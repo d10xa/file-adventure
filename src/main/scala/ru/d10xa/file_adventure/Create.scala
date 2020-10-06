@@ -4,8 +4,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import cats._
-import cats.effect.Bracket
-import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
@@ -13,14 +11,9 @@ import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.FileWrite
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.implicits._
-import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
-import ru.d10xa.file_adventure.progress.TraverseProgress._
+import ru.d10xa.file_adventure.progress.TraverseProgress
 
-class Create[F[
-  _
-]: Fs: Sync: ProgressBuilder: Monad: FileWrite: Checksum: Bracket[*[
-  _
-], Throwable]] {
+class Create[F[_]: Fs: TraverseProgress: Monad: FileWrite: Checksum] {
 
   def calculateSums(files: Vector[Path]): F[Vector[FileAndHash]] =
     files.traverseWithProgress(f => FileAndHash.fromFile[F](f))
