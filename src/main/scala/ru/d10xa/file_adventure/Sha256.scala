@@ -3,9 +3,7 @@ package ru.d10xa.file_adventure
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import cats.FlatMap
-import cats.Functor
-import cats.effect.Bracket
+import cats.Monad
 import cats.implicits._
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.Main.sortHashes
@@ -13,14 +11,10 @@ import ru.d10xa.file_adventure.Main.sortedHashesToSingleHash
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.Fs
-import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
-import ru.d10xa.file_adventure.progress.TraverseProgress._
 import ru.d10xa.file_adventure.implicits._
+import ru.d10xa.file_adventure.progress.TraverseProgress
 
-class Sha256[F[_]: Fs: Bracket[
-  *[_],
-  Throwable
-]: Functor: FlatMap: ProgressBuilder: Checksum: Console]() {
+class Sha256[F[_]: Fs: Monad: TraverseProgress: Checksum: Console]() {
   def run(c: Sha256Command): F[Unit] =
     Sha256
       .recursiveHash(Paths.get(c.dir))
@@ -30,11 +24,7 @@ class Sha256[F[_]: Fs: Bracket[
 
 object Sha256 {
 
-  def filesToSingleHash[
-    F[_]: Fs: FlatMap: Functor: ProgressBuilder: Checksum: Bracket[*[
-      _
-    ], Throwable]
-  ](
+  def filesToSingleHash[F[_]: Fs: Monad: TraverseProgress: Checksum](
     files: Vector[Path]
   ): F[Sha256Hash] =
     for {
@@ -45,10 +35,7 @@ object Sha256 {
       result = sortedHashesToSingleHash(sortedHashes)
     } yield result
 
-  def recursiveHash[F[_]: Bracket[
-    *[_],
-    Throwable
-  ]: Fs: FlatMap: ProgressBuilder: Checksum](
+  def recursiveHash[F[_]: Fs: Monad: TraverseProgress: Checksum](
     f: Path
   ): F[Sha256Hash] =
     for {

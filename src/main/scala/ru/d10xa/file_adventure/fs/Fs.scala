@@ -8,18 +8,27 @@ import scala.jdk.CollectionConverters._
 
 import cats.effect.Sync
 
-trait Fs[F[_]] extends PathSize[F] with PathList[F]
+trait Fs[F[_]]
+    extends PathSize[F]
+    with PathList[F]
+    with PathExist[F]
+    with PathLines[F]
 
 trait PathSize[F[_]] {
   def size(file: Path): F[Long]
 }
-
 object PathSize {
   def apply[F[_]](implicit instance: PathSize[F]): PathSize[F] = instance
 }
-
+trait PathExist[F[_]] {
+  def exists(p: Path): F[Boolean]
+  def isRegularFile(p: Path): F[Boolean]
+}
 trait PathList[F[_]] {
   def listRecursive(dir: Path, predicate: Path => Boolean): F[Vector[Path]]
+}
+trait PathLines[F[_]] {
+  def linesVector(p: Path): F[Vector[String]]
 }
 object Fs {
   def apply[F[_]](implicit instance: Fs[F]): Fs[F] = instance
@@ -46,5 +55,14 @@ object Fs {
 
       override def size(file: Path): F[Long] = Sync[F].delay(Files.size(file))
 
+      override def exists(p: Path): F[Boolean] = Sync[F].delay(Files.exists(p))
+
+      override def isRegularFile(p: Path): F[Boolean] =
+        Sync[F].delay(Files.isRegularFile(p))
+
+      override def linesVector(p: Path): F[Vector[String]] = {
+        import scala.jdk.CollectionConverters._
+        Sync[F].delay(Files.lines(p).iterator().asScala.toVector)
+      }
     })
 }

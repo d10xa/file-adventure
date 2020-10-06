@@ -6,7 +6,6 @@ import java.nio.file.Paths
 
 import better.files.File
 import cats._
-import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
@@ -14,10 +13,11 @@ import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.core._
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.implicits._
-import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
-import ru.d10xa.file_adventure.progress.TraverseProgress._
+import ru.d10xa.file_adventure.progress.TraverseProgress
 
-class Check[F[_]: Fs: Sync: ProgressBuilder: Checksum: Console]() {
+class Check[
+  F[_]: Fs: TraverseProgress: Checksum: Console: MonadError[*[_], Throwable]
+]() {
 
   def checkDir(dir: Path): F[Vector[CheckedFile]] = {
     val regularFiles: F[Vector[Path]] =
@@ -26,14 +26,15 @@ class Check[F[_]: Fs: Sync: ProgressBuilder: Checksum: Console]() {
     val file = dir.resolve(FILESUM_CONSTANT_NAME)
 
     val filesToCheck: F[Vector[FileToCheck]] =
-      file.fileExistsF
+      Fs[F]
+        .isRegularFile(file)
         .ifM[Vector[FileToCheck]](
           FileToCheck.readFromSumFile(file),
           Vector.empty[FileToCheck].pure[F]
         )
 
     val checkedFiles: F[Vector[CheckedFile]] =
-      filesToCheck.flatMap(_.traverseWithProgress(_.check()))
+      filesToCheck.flatMap(_.traverseWithProgress(_.check[F]()))
 
     val fileNamesFromSumFile: F[Set[String]] =
       filesToCheck.map(_.map(_.file.nameOrEmpty).toSet)
@@ -93,14 +94,11 @@ final case class FileToCheck(file: Path, expectedHash: Sha256Hash) {
     Files.isRegularFile(file),
     s"FileToCheck must be initialized only with files. (${file.show})"
   )
-  def check[F[_]: Sync: Checksum](): F[CheckedFile] = {
-    val isMissing = for {
-      e <- file.existsF
-      r <- file.isRegularFileF
-    } yield !e || !r
+  def check[F[_]: Monad: Fs: Checksum](): F[CheckedFile] = {
+    val isMissing = Fs[F].isRegularFile(file).map(is => !is)
     val missingCase =
-      Sync[F]
-        .delay(FileSystemMissingFile(file, expectedHash))
+      FileSystemMissingFile(file, expectedHash)
+        .pure[F]
         .widen[CheckedFile]
     val okCase =
       Checksum[F]
@@ -119,21 +117,25 @@ object FileToCheck {
   ): FileToCheck =
     FileToCheck(parent.resolve(fileAndHash.regularFile), fileAndHash.hash)
 
-  def linesToFtc[F[_]: Sync](
+  def linesToFtc[F[_]: MonadError[*[_], Throwable]](
     file: Path,
     lines: Vector[String]
   ): F[Vector[FileToCheck]] =
     lines
-      .traverse(line =>
-        file.parentF.flatMap(parent =>
-          FileAndHash
-            .fromLine(parent, line)
-            .map(fileAndHash => fileAndHashToFileToCheck(parent, fileAndHash))
-        )
+      .traverse[F, FileToCheck](line =>
+        file
+          .parentF[F]
+          .flatMap(parent =>
+            FileAndHash
+              .fromLine[F](parent, line)
+              .map(fileAndHash => fileAndHashToFileToCheck(parent, fileAndHash))
+          )
       )
 
-  def readFromSumFile[F[_]: Sync](file: Path): F[Vector[FileToCheck]] =
-    Sync[F].delay(File(file).lines.toVector).flatMap(linesToFtc(file, _))
+  def readFromSumFile[F[_]: Fs: MonadError[*[_], Throwable]](
+    file: Path
+  ): F[Vector[FileToCheck]] =
+    Fs[F].linesVector(file).flatMap(linesToFtc[F](file, _))
 
 }
 

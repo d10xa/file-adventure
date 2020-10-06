@@ -1,27 +1,24 @@
 package ru.d10xa.file_adventure
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 import cats.Applicative
+import cats.ApplicativeError
 import cats.Show
-import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.fs.PathSize
 import ru.d10xa.file_adventure.progress.ProgressInfo
+import ru.d10xa.file_adventure.progress.TraverseProgress.TraverseProgressImplicits
 
 trait CatsInstances {
   implicit val catsShowForPath: Show[Path] = Show.fromToString
 }
 
 trait JavaNioImplicits extends CatsInstances {
-  implicit class PathOpsF[F[_]: Sync](private val f: Path) {
-    def fileExistsF: F[Boolean] =
-      for {
-        exists <- Sync[F].delay(Files.exists(f))
-        regularFile <- Sync[F].delay(Files.isRegularFile(f))
-      } yield exists && regularFile
-    def parentF: F[Path] =
+  implicit class PathOpsF(
+    private val f: Path
+  ) {
+    def parentF[F[_]: ApplicativeError[*[_], Throwable]]: F[Path] =
       Either
         .fromOption(
           Option(f.getParent),
@@ -30,8 +27,6 @@ trait JavaNioImplicits extends CatsInstances {
           )
         )
         .liftTo[F]
-    def existsF: F[Boolean] = Sync[F].delay(Files.exists(f))
-    def isRegularFileF: F[Boolean] = Sync[F].delay(Files.isRegularFile(f))
   }
 
   implicit class PathOps(private val f: Path) {
@@ -64,3 +59,4 @@ object implicits
     extends CatsInstances
     with JavaNioImplicits
     with ProgressInstances
+    with TraverseProgressImplicits

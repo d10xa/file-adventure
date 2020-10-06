@@ -5,20 +5,14 @@ import java.nio.file.Paths
 
 import ru.d10xa.file_adventure.core.FileAndHash
 import cats._
-import cats.effect.Bracket
-import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.implicits._
-import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
-import ru.d10xa.file_adventure.progress.TraverseProgress._
+import ru.d10xa.file_adventure.progress.TraverseProgress
 
 class Minus[
-  F[_]: Sync: Fs: ProgressBuilder: Monad: Bracket[
-    *[_],
-    Throwable
-  ]: Checksum: Console
+  F[_]: Fs: TraverseProgress: Monad: Checksum: Console
 ] {
 
   def run(c: MinusCommand): F[Unit] =
