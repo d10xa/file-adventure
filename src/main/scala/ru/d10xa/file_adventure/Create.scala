@@ -42,18 +42,21 @@ class Create[F[_]: Fs: TraverseProgress: Monad: FileWrite: Checksum] {
     )
   }
 
-  def run(c: CreateCommand): F[Unit] = {
-    val dir = Paths.get(c.dir)
+  def handleOneFileTrue(dir: Path): F[Unit] =
+    Fs[F]
+      .listRecursive(dir, core.filePredicate)
+      .flatMap(createShaFiles(dir, _))
 
-    if (c.oneFile)
-      Fs[F]
-        .listRecursive(dir, core.filePredicate)
-        .flatMap(createShaFiles(dir, _))
-    else
-      Fs[F]
-        .listRecursive(dir, core.filePredicate)
-        .map(_.groupBy(_.getParent).toVector)
-        .flatMap(traverseCreate)
+  def handleOneFileFalse(dir: Path): F[Unit] =
+    Fs[F]
+      .listRecursive(dir, core.filePredicate)
+      .map(_.groupBy(_.getParent).toVector)
+      .flatMap(traverseCreate)
+
+  def run(c: CreateCommand): F[Unit] = {
+    val dirs = c.dirs.map((d: String) => Paths.get(d))
+    val handler = if (c.oneFile) handleOneFileTrue _ else handleOneFileFalse _
+    dirs.traverse_(handler)
   }
 
 }

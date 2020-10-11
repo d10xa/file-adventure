@@ -1,5 +1,6 @@
 package ru.d10xa.file_adventure
 
+import cats.data.NonEmptyList
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.Sync
@@ -48,7 +49,8 @@ object Main
     )(
       (
         Opts
-          .option[String]("dir", help = "directory for hash calculations"),
+          .options[String]("dir", help = "directory for hash calculations")
+          .withDefault(NonEmptyList.one(".")),
         Opts
           .flag(
             "one-file",
