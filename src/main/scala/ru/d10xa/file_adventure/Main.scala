@@ -38,7 +38,8 @@ object Main
         "calculate sha256 of folder (concatenate hashes of files and calculate hash of hashes)"
     )(
       Opts
-        .option[String]("dir", help = "directory for hash")
+        .argument[String]("path")
+        .withDefault("")
         .map(Sha256Command.apply)
     )
 
@@ -49,7 +50,7 @@ object Main
     )(
       (
         Opts
-          .options[String]("dir", help = "directory for hash calculations")
+          .arguments[String]("path")
           .withDefault(NonEmptyList.one(".")),
         Opts
           .flag(
@@ -67,7 +68,7 @@ object Main
       help = s"check directory corresponds ${core.FILESUM_CONSTANT_NAME} file"
     )(
       Opts
-        .option[String]("dir", help = "directory to check")
+        .argument[String]("path")
         .map(CheckCommand.apply)
     )
 
