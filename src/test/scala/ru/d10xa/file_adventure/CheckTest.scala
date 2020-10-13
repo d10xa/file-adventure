@@ -8,21 +8,21 @@ import cats.effect.IO
 class CheckTest extends TestBase {
 
   test("check ok") {
-    val checkedFiles = checkDir(Paths.get("src/test/file/check/ok"))
+    val checkedFiles = check("ok")
     checkedFiles.size shouldBe 1
-    val file = checkedFiles.head
-    file.valid shouldBe true
+    val Vector(ok) = checkedFiles
+    ok.valid shouldBe true
   }
 
   test("check fail") {
-    val checkedFiles = checkDir(Paths.get("src/test/file/check/fail"))
+    val checkedFiles = check("fail")
     checkedFiles.size shouldBe 1
-    val file = checkedFiles.head
-    file.valid shouldBe false
+    val Vector(failed) = checkedFiles
+    failed.valid shouldBe false
   }
 
   test("check fail recursive") {
-    val checkedFiles = checkDir(Paths.get("src/test/file/check/fail_recursive"))
+    val checkedFiles = check("fail_recursive")
     checkedFiles.size shouldBe 2
     val Vector(ok, failed) = checkedFiles
     ok.valid shouldBe true
@@ -30,14 +30,17 @@ class CheckTest extends TestBase {
   }
 
   test("check ok recursive") {
-    val checkedFiles = checkDir(Paths.get("src/test/file/check/ok_recursive"))
+    val checkedFiles = check("ok_recursive")
     checkedFiles.size shouldBe 2
     val Vector(ok, failed) = checkedFiles
     ok.valid shouldBe true
     failed.valid shouldBe true
   }
 
-  def checkDir(d: Path): Vector[CheckedFile] =
+  def check(path: String): Vector[CheckedFile] =
+    checkFullPath(Paths.get(s"src/test/file/check/$path"))
+
+  def checkFullPath(d: Path): Vector[CheckedFile] =
     new Check[IO]().checkDir(d).unsafeRunSync()
 
 }
