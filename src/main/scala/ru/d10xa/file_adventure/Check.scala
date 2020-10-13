@@ -19,19 +19,22 @@ class Check[
   F[_]: Fs: TraverseProgress: Checksum: Console: MonadError[*[_], Throwable]
 ]() {
 
+  def listRecursiveSumFiles(dir: Path): F[Vector[Path]] =
+    Fs[F].listRecursive(dir, p => p.nameOrEmpty === FILESUM_CONSTANT_NAME)
+
+  def filterRegularFiles(paths: Vector[Path]): F[Vector[Path]] =
+    paths.filterA(p => Fs[F].isRegularFile(p))
+
+  def readSumFiles(paths: Vector[Path]): F[Vector[FileToCheck]] =
+    paths.flatTraverse(FileToCheck.readFromSumFile[F])
+
   def checkDir(dir: Path): F[Vector[CheckedFile]] = {
     val regularFiles: F[Vector[Path]] =
       Fs[F].listRecursive(dir, core.filePredicate)
 
-    val file = dir.resolve(FILESUM_CONSTANT_NAME)
-
-    val filesToCheck: F[Vector[FileToCheck]] =
-      Fs[F]
-        .isRegularFile(file)
-        .ifM[Vector[FileToCheck]](
-          FileToCheck.readFromSumFile(file),
-          Vector.empty[FileToCheck].pure[F]
-        )
+    val filesToCheck = listRecursiveSumFiles(dir)
+      .flatMap(filterRegularFiles)
+      .flatMap(readSumFiles)
 
     val checkedFiles: F[Vector[CheckedFile]] =
       filesToCheck.flatMap(_.traverseWithProgress(_.check[F]()))
