@@ -17,24 +17,15 @@ import ru.d10xa.file_adventure.progress.TraverseProgress
 
 class Check[
   F[_]: Fs: TraverseProgress: Checksum: Console: MonadError[*[_], Throwable]
-]() {
+](sfvReader: SfvReader[F]) {
 
-  def listRecursiveSumFiles(dir: Path): F[Vector[Path]] =
-    Fs[F].listRecursive(dir, p => p.nameOrEmpty === FILESUM_CONSTANT_NAME)
-
-  def filterRegularFiles(paths: Vector[Path]): F[Vector[Path]] =
-    paths.filterA(p => Fs[F].isRegularFile(p))
-
-  def readSumFiles(paths: Vector[Path]): F[Vector[FileToCheck]] =
-    paths.flatTraverse(FileToCheck.readFromSumFile[F])
+  val sfvFileName: String = FILESUM_CONSTANT_NAME
 
   def checkDir(dir: Path): F[Vector[CheckedFile]] = {
     val regularFiles: F[Vector[Path]] =
       Fs[F].listRecursive(dir, core.filePredicate)
 
-    val filesToCheck = listRecursiveSumFiles(dir)
-      .flatMap(filterRegularFiles)
-      .flatMap(readSumFiles)
+    val filesToCheck = sfvReader.readRecursiveSfvFiles(dir, sfvFileName)
 
     val checkedFiles: F[Vector[CheckedFile]] =
       filesToCheck.flatMap(_.traverseWithProgress(_.check[F]()))
@@ -91,14 +82,17 @@ final case class DirsToCheck(dirs: Vector[File]) {
   )
 }
 
+// TODO rename to SfvItem https://en.wikipedia.org/wiki/Simple_file_verification
+// TODO file rename to filename ???
+// TODO expectedHash rename to checksum
 final case class FileToCheck(file: Path, expectedHash: Sha256Hash) {
   import ru.d10xa.file_adventure.implicits._
+  // TODO erroneous requirement. Need to remove
   require(
     Files.isRegularFile(file),
     s"FileToCheck must be initialized only with files. (${file.show})"
   )
   def check[F[_]: Monad: Fs: Checksum](): F[CheckedFile] = {
-    val isMissing = Fs[F].isRegularFile(file).map(is => !is)
     val missingCase =
       FileSystemMissingFile(file, expectedHash)
         .pure[F]
@@ -108,7 +102,7 @@ final case class FileToCheck(file: Path, expectedHash: Sha256Hash) {
         .sha256(file)
         .map(sha => ExistentCheckedFile(file, expectedHash, sha))
         .widen[CheckedFile]
-    isMissing.ifM[CheckedFile](missingCase, okCase)
+    Fs[F].isRegularFile(file).ifM[CheckedFile](okCase, missingCase)
   }
 }
 

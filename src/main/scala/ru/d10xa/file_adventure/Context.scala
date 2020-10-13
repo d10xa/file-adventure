@@ -13,7 +13,8 @@ class Context[F[_]](
   create: Create[F],
   check: Check[F],
   sha256: Sha256[F],
-  minus: Minus[F]
+  minus: Minus[F],
+  compare: Compare[F]
 ) {
   def run(cb: CommandBase): F[Unit] =
     cb match {
@@ -21,6 +22,7 @@ class Context[F[_]](
       case c: Sha256Command => sha256.run(c)
       case c: CreateCommand => create.run(c)
       case c: CheckCommand => check.run(c)
+      case c: CompareCommand => compare.run(c)
     }
 }
 
@@ -34,9 +36,11 @@ object Context {
       implicit0(traverseProgress: TraverseProgress[F]) =
         TraverseProgress.make[F](progressBuilder)
       implicit0(fs: Fs[F]) <- Fs.make[F]
+      sfvReader = SfvReader.make[F]
       create = new Create[F]()
-      check = new Check[F]()
+      check = new Check[F](sfvReader)
       sha256 = new Sha256[F]()
       minus = new Minus[F]()
-    } yield new Context[F](create, check, sha256, minus)
+      compare = new Compare[F](sfvReader)
+    } yield new Context[F](create, check, sha256, minus, compare)
 }
