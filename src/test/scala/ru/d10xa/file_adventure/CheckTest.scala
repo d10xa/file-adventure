@@ -21,6 +21,22 @@ class CheckTest extends TestBase {
     file.valid shouldBe false
   }
 
+  test("check fail recursive") {
+    val checkedFiles = checkDir(Paths.get("src/test/file/check/fail_recursive"))
+    checkedFiles.size shouldBe 2
+    val Vector(ok, failed) = checkedFiles
+    ok.valid shouldBe true
+    failed.valid shouldBe false
+  }
+
+  test("check ok recursive") {
+    val checkedFiles = checkDir(Paths.get("src/test/file/check/ok_recursive"))
+    checkedFiles.size shouldBe 2
+    val Vector(ok, failed) = checkedFiles
+    ok.valid shouldBe true
+    failed.valid shouldBe true
+  }
+
   def checkDir(d: Path): Vector[CheckedFile] =
     new Check[IO]().checkDir(d).unsafeRunSync()
 
