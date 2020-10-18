@@ -15,7 +15,10 @@ import cats.implicits._
 
 import scala.annotation.nowarn
 
-class Compare[F[_]: Fs: Monad: Console](sfvReader: SfvReader[F]) {
+class Compare[F[_]: Fs: Monad: Console](
+  sfvReader: SfvReader[F],
+  sfvService: SfvService[F]
+) {
 
   val sfvFileName: String = FILESUM_CONSTANT_NAME
 
@@ -26,17 +29,23 @@ class Compare[F[_]: Fs: Monad: Console](sfvReader: SfvReader[F]) {
     }
 
   def compareSides(
+    currentSideParent: Path,
+    otherSideParent: Path,
     currentSide: Vector[FileToCheck],
     otherSide: Vector[FileToCheck]
-  ): ComparisonSide = {
-    val otherSideHashes = otherSide.map(_.expectedHash.value).toSet
-    def isDuplicateByHash(sfv: FileToCheck): Boolean =
-      otherSideHashes.contains(sfv.expectedHash.value)
-    val duplicatesBySum = currentSide.filter(isDuplicateByHash)
+  ): ComparisonSide =
     ComparisonSide(
-      duplicatesBySum = duplicatesBySum.map(_.file)
+      duplicatesBySum =
+        sfvService.duplicatesBySum(currentSide, otherSide).map(_.file),
+      duplicatesByPathAndSum = sfvService
+        .duplicatesByPathAndSum(
+          currentSideParent,
+          otherSideParent,
+          currentSide,
+          otherSide
+        )
+        .map(_.file)
     )
-  }
 
   def run(c: CompareCommand): F[Unit] =
     for {
@@ -44,8 +53,8 @@ class Compare[F[_]: Fs: Monad: Console](sfvReader: SfvReader[F]) {
       leftSfvs <- sfvReader.readRecursiveSfvFiles(c.left, sfvFileName)
       rightSfvs <- sfvReader.readRecursiveSfvFiles(c.right, sfvFileName)
       compareResult = CompareResult(
-        left = compareSides(leftSfvs, rightSfvs),
-        right = compareSides(rightSfvs, leftSfvs)
+        left = compareSides(c.left, c.right, leftSfvs, rightSfvs),
+        right = compareSides(c.right, c.left, rightSfvs, leftSfvs)
       )
       _ <- Console[F].putStrLn(compareResult.asJson.spaces2)
     } yield ()
@@ -53,7 +62,10 @@ class Compare[F[_]: Fs: Monad: Console](sfvReader: SfvReader[F]) {
 }
 
 object Compare {
-  final case class ComparisonSide(duplicatesBySum: Vector[Path])
+  final case class ComparisonSide(
+    duplicatesBySum: Vector[Path],
+    duplicatesByPathAndSum: Vector[Path]
+  )
 
   object ComparisonSide {
     @SuppressWarnings(Array("org.wartremover.warts.ToString"))

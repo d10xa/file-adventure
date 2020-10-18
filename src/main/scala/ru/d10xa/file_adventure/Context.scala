@@ -37,10 +37,11 @@ object Context {
         TraverseProgress.make[F](progressBuilder)
       implicit0(fs: Fs[F]) <- Fs.make[F]
       sfvReader = SfvReader.make[F]
+      sfvService = SfvService.make[F]
       create = new Create[F]()
       check = new Check[F](sfvReader)
       sha256 = new Sha256[F]()
       minus = new Minus[F]()
-      compare = new Compare[F](sfvReader)
+      compare = new Compare[F](sfvReader, sfvService)
     } yield new Context[F](create, check, sha256, minus, compare)
 }
