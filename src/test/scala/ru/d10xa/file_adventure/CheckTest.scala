@@ -41,6 +41,6 @@ class CheckTest extends TestBase {
     checkFullPath(Paths.get(s"src/test/file/check/$path"))
 
   def checkFullPath(d: Path): Vector[CheckedFile] =
-    new Check[IO]().checkDir(d).unsafeRunSync()
+    new Check[IO](sfvReader).checkDir(d).unsafeRunSync()
 
 }

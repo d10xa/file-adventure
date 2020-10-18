@@ -4,9 +4,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.function.BiPredicate
-import scala.jdk.CollectionConverters._
 
+import cats.Applicative
+
+import scala.jdk.CollectionConverters._
 import cats.effect.Sync
+import cats.implicits._
+import ru.d10xa.file_adventure.implicits._
 
 trait Fs[F[_]]
     extends PathSize[F]
@@ -22,6 +26,7 @@ object PathSize {
 }
 trait PathExist[F[_]] {
   def exists(p: Path): F[Boolean]
+  def requireExists(paths: Path*): F[Unit]
   def isRegularFile(p: Path): F[Boolean]
 }
 trait PathList[F[_]] {
@@ -57,6 +62,17 @@ object Fs {
 
       override def exists(p: Path): F[Boolean] = Sync[F].delay(Files.exists(p))
 
+      private def requireExistsOne(p: Path): F[Unit] =
+        exists(p).ifM(
+          Applicative[F].unit,
+          Sync[F].raiseError(
+            new IllegalArgumentException(s"path does not exist: ${p.show}")
+          )
+        )
+
+      override def requireExists(paths: Path*): F[Unit] =
+        paths.toList.traverse_(requireExistsOne)
+
       override def isRegularFile(p: Path): F[Boolean] =
         Sync[F].delay(Files.isRegularFile(p))
 
@@ -64,5 +80,6 @@ object Fs {
         import scala.jdk.CollectionConverters._
         Sync[F].delay(Files.lines(p).iterator().asScala.toVector)
       }
+
     })
 }

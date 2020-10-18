@@ -28,4 +28,5 @@ abstract class TestBase extends AnyFunSuite with Matchers {
   implicit val traverseProgress: TraverseProgress[IO] =
     TraverseProgress.make[IO](progressBuilder)
   implicit val fs: Fs[IO] = Fs.make[IO].unsafeRunSync()
+  val sfvReader: SfvReader[IO] = SfvReader.make[IO]
 }

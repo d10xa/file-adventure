@@ -1,5 +1,7 @@
 package ru.d10xa.file_adventure
 
+import java.nio.file.Path
+
 import cats.data.NonEmptyList
 import cats.effect.ExitCode
 import cats.effect.IO
@@ -72,6 +74,18 @@ object Main
         .map(CheckCommand.apply)
     )
 
+  val compareOpts: Opts[CompareCommand] =
+    Opts.subcommand(
+      "compare",
+      help = "compare two directories by checksum files"
+    )(
+      (
+        Opts.option[Path]("left", help = "left path"),
+        Opts.option[Path]("right", "right path")
+      )
+        .mapN(CompareCommand.apply)
+    )
+
   override def main: Opts[IO[ExitCode]] = program[IO]
 
   def program[F[_]: Sync]: Opts[F[ExitCode]] = {
@@ -79,7 +93,8 @@ object Main
     val sha256 = sha256Opts.map(runCommand[F])
     val create = createOpts.map(runCommand[F])
     val check = checkOpts.map(runCommand[F])
-    minus.orElse(sha256).orElse(create).orElse(check)
+    val compare = compareOpts.map(runCommand[F])
+    minus.orElse(sha256).orElse(create).orElse(check).orElse(compare)
   }
 
   def runCommand[F[_]: Sync](c: CommandBase): F[ExitCode] =
