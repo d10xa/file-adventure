@@ -33,19 +33,24 @@ class Compare[F[_]: Fs: Monad: Console](
     otherSideParent: Path,
     currentSide: Vector[FileToCheck],
     otherSide: Vector[FileToCheck]
-  ): ComparisonSide =
+  ): ComparisonSide = {
+    val compareBySumResult = sfvService.compareBySum(currentSide, otherSide)
+    val compareByPathAndSumResult = sfvService
+      .compareByPathAndSum(
+        currentSideParent,
+        otherSideParent,
+        currentSide,
+        otherSide
+      )
     ComparisonSide(
-      duplicatesBySum =
-        sfvService.duplicatesBySum(currentSide, otherSide).map(_.file),
-      duplicatesByPathAndSum = sfvService
-        .duplicatesByPathAndSum(
-          currentSideParent,
-          otherSideParent,
-          currentSide,
-          otherSide
-        )
-        .map(_.file)
+      duplicatesBySum = compareBySumResult.duplicates.map(_.file),
+      duplicatesByPathAndSum = compareByPathAndSumResult.duplicates
+        .map(_.file),
+      uniqueBySum = compareBySumResult.unique
+        .map(_.file),
+      uniqueByPathAndSum = compareByPathAndSumResult.unique.map(_.file)
     )
+  }
 
   def run(c: CompareCommand): F[Unit] =
     for {
@@ -64,7 +69,9 @@ class Compare[F[_]: Fs: Monad: Console](
 object Compare {
   final case class ComparisonSide(
     duplicatesBySum: Vector[Path],
-    duplicatesByPathAndSum: Vector[Path]
+    duplicatesByPathAndSum: Vector[Path],
+    uniqueBySum: Vector[Path],
+    uniqueByPathAndSum: Vector[Path]
   )
 
   object ComparisonSide {
