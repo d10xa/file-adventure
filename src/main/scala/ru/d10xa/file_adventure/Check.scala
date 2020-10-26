@@ -2,7 +2,6 @@ package ru.d10xa.file_adventure
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import better.files.File
 import cats._
@@ -62,7 +61,7 @@ class Check[
       }
 
   def run(c: CheckCommand): F[Unit] =
-    checkDirs(Vector(Paths.get(c.dir)))
+    checkDirs(Vector(c.dir))
       .map(list =>
         list
           .filter {

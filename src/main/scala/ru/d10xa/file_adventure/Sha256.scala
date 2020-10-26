@@ -1,7 +1,6 @@
 package ru.d10xa.file_adventure
 
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import cats.Monad
 import cats.implicits._
@@ -17,7 +16,7 @@ import ru.d10xa.file_adventure.progress.TraverseProgress
 class Sha256[F[_]: Fs: Monad: TraverseProgress: Checksum: Console]() {
   def run(c: Sha256Command): F[Unit] =
     Sha256
-      .recursiveHash(Paths.get(c.dir))
+      .recursiveHash(c.dir)
       .map(_.show)
       .flatMap(Console[F].putStrLn)
 }

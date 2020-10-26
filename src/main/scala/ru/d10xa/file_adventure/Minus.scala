@@ -1,7 +1,6 @@
 package ru.d10xa.file_adventure
 
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import ru.d10xa.file_adventure.core.FileAndHash
 import cats._
@@ -17,7 +16,7 @@ class Minus[
 
   def run(c: MinusCommand): F[Unit] =
     for {
-      files <- minus(Paths.get(c.left), Paths.get(c.right))
+      files <- minus(c.left, c.right)
       strings = files.map(_.toAbsolutePath.show)
       _ <- strings.toList.traverse_(Console[F].putStrLn)
     } yield ()

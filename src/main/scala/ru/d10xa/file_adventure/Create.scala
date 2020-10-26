@@ -1,7 +1,6 @@
 package ru.d10xa.file_adventure
 
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import cats._
 import cats.implicits._
@@ -54,9 +53,8 @@ class Create[F[_]: Fs: TraverseProgress: Monad: FileWrite: Checksum] {
       .flatMap(traverseCreate)
 
   def run(c: CreateCommand): F[Unit] = {
-    val dirs = c.dirs.map((d: String) => Paths.get(d))
     val handler = if (c.oneFile) handleOneFileTrue _ else handleOneFileFalse _
-    dirs.traverse_(handler)
+    c.dirs.traverse_(handler)
   }
 
 }
