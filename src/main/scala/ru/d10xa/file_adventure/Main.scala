@@ -1,6 +1,7 @@
 package ru.d10xa.file_adventure
 
 import java.nio.file.Path
+import java.nio.file.Paths
 
 import cats.data.NonEmptyList
 import cats.effect.ExitCode
@@ -13,7 +14,7 @@ import com.monovore.decline.effect._
 
 object Main
     extends CommandIOApp(
-      name = "file-adventure",
+      name = "fsumo",
       header = "hash sum command line utility"
     ) {
 
@@ -28,8 +29,8 @@ object Main
   val minusOpts: Opts[MinusCommand] =
     Opts.subcommand("minus", help = "l - r")(
       (
-        Opts.option[String]("left", short = "l", help = "left folder"),
-        Opts.option[String]("right", short = "r", help = "right folder")
+        Opts.option[Path]("left", short = "l", help = "left folder"),
+        Opts.option[Path]("right", short = "r", help = "right folder")
       ).mapN(MinusCommand.apply)
     )
 
@@ -40,8 +41,8 @@ object Main
         "calculate sha256 of folder (concatenate hashes of files and calculate hash of hashes)"
     )(
       Opts
-        .argument[String]("path")
-        .withDefault("")
+        .argument[Path]("path")
+        .withDefault(Paths.get(""))
         .map(Sha256Command.apply)
     )
 
@@ -52,8 +53,8 @@ object Main
     )(
       (
         Opts
-          .arguments[String]("path")
-          .withDefault(NonEmptyList.one(".")),
+          .arguments[Path]("path")
+          .withDefault(NonEmptyList.one(Paths.get("."))),
         Opts
           .flag(
             "one-file",
@@ -70,7 +71,7 @@ object Main
       help = s"check directory corresponds ${core.FILESUM_CONSTANT_NAME} file"
     )(
       Opts
-        .argument[String]("path")
+        .argument[Path]("path")
         .map(CheckCommand.apply)
     )
 
