@@ -26,6 +26,8 @@ object Main
     case xs => Sha256Hash.fromString(xs.map(_.value.show).mkString(""))
   }
 
+  val debugOpt: Opts[Boolean] = Opts.flag("debug", "log in debug mode").orFalse
+
   val minusOpts: Opts[MinusCommand] =
     Opts.subcommand("minus", help = "l - r")(
       (
@@ -70,9 +72,12 @@ object Main
       "check",
       help = s"check directory corresponds ${core.FILESUM_CONSTANT_NAME} file"
     )(
-      Opts
-        .argument[Path]("path")
-        .map(CheckCommand.apply)
+      (
+        Opts
+          .argument[Path]("path"),
+        debugOpt
+      )
+        .mapN(CheckCommand.apply)
     )
 
   val compareOpts: Opts[CompareCommand] =
@@ -100,7 +105,10 @@ object Main
 
   def runCommand[F[_]: Sync](c: CommandBase): F[ExitCode] =
     Context
-      .make[F]
+      .make[F](c match {
+        case c: CheckCommand => c.debug
+        case _ => false
+      })
       .flatMap(_.run(c))
       .as(ExitCode.Success)
 

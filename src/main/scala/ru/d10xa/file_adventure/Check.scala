@@ -15,10 +15,17 @@ import ru.d10xa.file_adventure.implicits._
 import ru.d10xa.file_adventure.progress.TraverseProgress
 
 class Check[
-  F[_]: Fs: TraverseProgress: Checksum: Console: MonadError[*[_], Throwable]
+  F[_]: Fs: TraverseProgress: Checksum: Log: MonadError[*[_], Throwable]
 ](sfvReader: SfvReader[F]) {
 
   val sfvFileName: String = FILESUM_CONSTANT_NAME
+
+  def check(fileToCheck: FileToCheck): F[CheckedFile] =
+    for {
+      _ <- Log[F].debug(s"start check (${fileToCheck.file.show})")
+      res <- fileToCheck.check[F]()
+      _ <- Log[F].debug(s"valid: ${res.valid.show} (${fileToCheck.file.show})")
+    } yield res
 
   def checkDir(dir: Path): F[Vector[CheckedFile]] = {
     val regularFiles: F[Vector[Path]] =
@@ -27,7 +34,7 @@ class Check[
     val filesToCheck = sfvReader.readRecursiveSfvFiles(dir, sfvFileName)
 
     val checkedFiles: F[Vector[CheckedFile]] =
-      filesToCheck.flatMap(_.traverseWithProgress(_.check[F]()))
+      filesToCheck.flatMap(_.traverseWithProgress(check))
 
     val fileNamesFromSumFile: F[Set[String]] =
       filesToCheck.map(_.map(_.file.nameOrEmpty).toSet)
@@ -70,7 +77,7 @@ class Check[
           }
           .map(_.show)
       )
-      .flatMap(list => list.traverse_(item => Console[F].putStrLn(item)))
+      .flatMap(list => list.traverse_(item => Log[F].info(item)))
 
 }
 
