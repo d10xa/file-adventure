@@ -41,7 +41,7 @@ object core {
       parent: Path,
       line: String
     ): F[FileAndHash] =
-      line.split(" [*,\\s]").toList match {
+      line.split(" [*,\\s]", 2).toList match {
         case sum :: file :: Nil =>
           FileAndHash(parent.relativize(parent.resolve(file)), Sha256Hash(sum))
             .pure[F]
