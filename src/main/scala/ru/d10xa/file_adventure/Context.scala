@@ -27,12 +27,16 @@ class Context[F[_]](
 }
 
 object Context {
-  def make[F[_]: Sync](debug: Boolean): F[Context[F]] =
+  def make[F[_]: Sync](
+    debug: Boolean,
+    progress: Boolean
+  ): F[Context[F]] =
     for {
       implicit0(checksum: Checksum[F]) <- Checksum.make[F]
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
       implicit0(console: Console[F]) <- Console.make[F]
-      implicit0(progressBuilder: ProgressBuilder[F]) <- Progress.builder[F]
+      implicit0(progressBuilder: ProgressBuilder[F]) <-
+        if (progress) Progress.builder[F] else Progress.dummyBuilder[F]
       implicit0(traverseProgress: TraverseProgress[F]) =
         TraverseProgress.make[F](progressBuilder)
       implicit0(fs: Fs[F]) <- Fs.make[F]
