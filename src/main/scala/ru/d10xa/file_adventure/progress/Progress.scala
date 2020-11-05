@@ -1,5 +1,6 @@
 package ru.d10xa.file_adventure.progress
 
+import cats.Applicative
 import cats.effect.Resource
 import cats.effect.Sync
 import cats.implicits._
@@ -40,5 +41,19 @@ object Progress {
         )
         .flatMap(pb => Resource.liftF(toProgress(pb)))
     )
+
+  def dummyBuilder[F[_]: Applicative]: F[ProgressBuilder[F]] =
+    Applicative[F].pure(new ProgressBuilder[F] {
+      override def build(params: InitParams): Resource[F, Progress[F]] =
+        Resource.make(Applicative[F].pure(progressDummy[F]))(_ =>
+          Applicative[F].unit
+        )
+    })
+
+  private def progressDummy[F[_]: Applicative]: Progress[F] =
+    new Progress[F] {
+      override def setExtraMessage(msg: String): F[Unit] = Applicative[F].unit
+      override def stepBy(n: Long): F[Unit] = Applicative[F].unit
+    }
 
 }

@@ -28,6 +28,9 @@ object Main
 
   val debugOpt: Opts[Boolean] = Opts.flag("debug", "log in debug mode").orFalse
 
+  val progressOpt: Opts[Boolean] =
+    Opts.flag("progress", "log in debug mode").orFalse
+
   val minusOpts: Opts[MinusCommand] =
     Opts.subcommand("minus", help = "l - r")(
       (
@@ -75,7 +78,8 @@ object Main
       (
         Opts
           .argument[Path]("path"),
-        debugOpt
+        debugOpt,
+        progressOpt
       )
         .mapN(CheckCommand.apply)
     )
@@ -103,13 +107,22 @@ object Main
     minus.orElse(sha256).orElse(create).orElse(check).orElse(compare)
   }
 
-  def runCommand[F[_]: Sync](c: CommandBase): F[ExitCode] =
+  def runCommand[F[_]: Sync](c: CommandBase): F[ExitCode] = {
+    val debug = c match {
+      case c: CheckCommand => c.debug
+      case _ => false
+    }
+    val progress = c match {
+      case c: CheckCommand => c.progress
+      case _ => true
+    }
     Context
-      .make[F](c match {
-        case c: CheckCommand => c.debug
-        case _ => false
-      })
+      .make[F](
+        debug = debug,
+        progress = progress
+      )
       .flatMap(_.run(c))
       .as(ExitCode.Success)
+  }
 
 }

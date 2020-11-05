@@ -9,5 +9,6 @@ final case class MinusCommand(left: Path, right: Path) extends CommandBase
 final case class Sha256Command(dir: Path) extends CommandBase
 final case class CreateCommand(dirs: NonEmptyList[Path], oneFile: Boolean)
     extends CommandBase
-final case class CheckCommand(dir: Path, debug: Boolean) extends CommandBase
+final case class CheckCommand(dir: Path, debug: Boolean, progress: Boolean)
+    extends CommandBase
 final case class CompareCommand(left: Path, right: Path) extends CommandBase

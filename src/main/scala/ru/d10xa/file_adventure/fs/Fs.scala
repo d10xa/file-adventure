@@ -7,7 +7,7 @@ import java.util.function.BiPredicate
 
 import cats.Applicative
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.StreamConverters._
 import cats.effect.Sync
 import cats.implicits._
 import ru.d10xa.file_adventure.implicits._
@@ -53,9 +53,7 @@ object Fs {
                   predicate(t)
               }
             )
-            .iterator()
-            .asScala
-            .toVector
+            .toScala(Vector)
         )
 
       override def size(file: Path): F[Long] = Sync[F].delay(Files.size(file))
@@ -76,10 +74,8 @@ object Fs {
       override def isRegularFile(p: Path): F[Boolean] =
         Sync[F].delay(Files.isRegularFile(p))
 
-      override def linesVector(p: Path): F[Vector[String]] = {
-        import scala.jdk.CollectionConverters._
-        Sync[F].delay(Files.lines(p).iterator().asScala.toVector)
-      }
+      override def linesVector(p: Path): F[Vector[String]] =
+        Sync[F].delay(Files.lines(p).toScala(Vector))
 
     })
 }

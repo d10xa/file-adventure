@@ -28,8 +28,10 @@ class Check[
     } yield res
 
   def checkDir(dir: Path): F[Vector[CheckedFile]] = {
-    val regularFiles: F[Vector[Path]] =
-      Fs[F].listRecursive(dir, core.filePredicate)
+    val regularFiles: F[Vector[Path]] = for {
+      _ <- Log[F].debug(s"checkDir: (${dir.show})")
+      res <- Fs[F].listRecursive(dir, core.filePredicate)
+    } yield res
 
     val filesToCheck = sfvReader.readRecursiveSfvFiles(dir, sfvFileName)
 
@@ -69,6 +71,7 @@ class Check[
 
   def run(c: CheckCommand): F[Unit] =
     checkDirs(Vector(c.dir))
+      .flatTap(list => Log[F].debug(s"Total checked: ${list.size.show}"))
       .map(list =>
         list
           .filter {
@@ -77,7 +80,10 @@ class Check[
           }
           .map(_.show)
       )
-      .flatMap(list => list.traverse_(item => Log[F].info(item)))
+      .flatMap(list =>
+        Log[F].debug(s"Total invalid: ${list.size.show}") >>
+          list.traverse_(item => Log[F].info(item))
+      )
 
 }
 
