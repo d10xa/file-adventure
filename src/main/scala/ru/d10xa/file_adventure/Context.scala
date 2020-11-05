@@ -27,7 +27,7 @@ class Context[F[_]](
 }
 
 object Context {
-  def make[F[_]: Sync]: F[Context[F]] =
+  def make[F[_]: Sync](debug: Boolean): F[Context[F]] =
     for {
       implicit0(checksum: Checksum[F]) <- Checksum.make[F]
       implicit0(fileWrite: FileWrite[F]) <- FileWrite.make[F]
@@ -36,6 +36,7 @@ object Context {
       implicit0(traverseProgress: TraverseProgress[F]) =
         TraverseProgress.make[F](progressBuilder)
       implicit0(fs: Fs[F]) <- Fs.make[F]
+      implicit0(log: Log[F]) = Log.make[F](debug)
       sfvReader = SfvReader.make[F]
       sfvService = SfvService.make[F]
       create = new Create[F]()
