@@ -8,7 +8,6 @@ import cats.effect.Concurrent
 import cats.effect.ContextShift
 import cats.effect.ExitCode
 import cats.effect.IO
-import cats.effect.Sync
 import ru.d10xa.file_adventure.core.Sha256Hash
 import cats.implicits._
 import com.monovore.decline._

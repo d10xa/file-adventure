@@ -20,15 +20,15 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-      "org.scalatest" %% "scalatest" % "3.2.0" % Test,
-      "me.tongfei" % "progressbar" % "0.8.1",
+      "org.scalatest" %% "scalatest" % "3.2.3" % Test,
+      "me.tongfei" % "progressbar" % "0.9.0",
       "com.github.pathikrit" %% "better-files" % "3.9.1",
-      "commons-codec" % "commons-codec" % "1.14",
-      "org.typelevel" %% "cats-core" % "2.1.1",
+      "commons-codec" % "commons-codec" % "1.15",
+      "org.typelevel" %% "cats-core" % "2.2.0",
       "io.circe" %% "circe-config" % "0.8.0",
       "io.circe" %% "circe-generic" % "0.13.0",
-      "com.monovore" %% "decline" % "1.2.0",
-      "com.monovore" %% "decline-effect" % "1.2.0",
+      "com.monovore" %% "decline" % "1.3.0",
+      "com.monovore" %% "decline-effect" % "1.3.0",
       "co.fs2" %% "fs2-core" % "2.4.4",
       "co.fs2" %% "fs2-io" % "2.4.4"
     )
