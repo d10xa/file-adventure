@@ -2,6 +2,7 @@ lazy val root = (project in file("."))
   .settings(commonSettings: _*)
   .settings(
     name := "file-adventure",
+    fork in run := true,
     scalacOptions ++= Seq(
       "-encoding",
       "UTF-8", // source files are in UTF-8
@@ -10,7 +11,7 @@ lazy val root = (project in file("."))
       "-feature", // warn about misused language features
       "-language:higherKinds", // allow higher kinded types without `import scala.language.higherKinds`
       "-Xlint", // enable handy linter warnings
-      "-Wvalue-discard"
+      "-Wvalue-discard" // warn when non-Unit expression results are unused.
     ),
     addCompilerPlugin(
       ("org.typelevel" %% "kind-projector" % "0.11.0").cross(CrossVersion.full)
