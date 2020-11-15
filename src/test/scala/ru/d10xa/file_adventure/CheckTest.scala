@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import cats.effect.IO
+import org.scalatest.Inspectors._
 
 class CheckTest extends TestBase {
 
@@ -37,10 +38,18 @@ class CheckTest extends TestBase {
     failed.valid shouldBe true
   }
 
+  test("check parent_dir") {
+    val checkedFiles = check("parent_dir/child_lvl_1")
+    checkedFiles.size shouldBe 2
+    forAll(checkedFiles) { f =>
+      f.valid shouldBe true
+    }
+  }
+
   def check(path: String): Vector[CheckedFile] =
     checkFullPath(Paths.get(s"src/test/file/check/$path"))
 
   def checkFullPath(d: Path): Vector[CheckedFile] =
-    new Check[IO](sfvReader).checkDir(d).unsafeRunSync()
+    new Check[IO](pathStreamService).checkDir(d).unsafeRunSync()
 
 }

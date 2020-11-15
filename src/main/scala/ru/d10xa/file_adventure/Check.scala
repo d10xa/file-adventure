@@ -1,67 +1,76 @@
 package ru.d10xa.file_adventure
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 import better.files.File
 import cats._
+import cats.effect.Blocker
+import cats.effect.Bracket
+import cats.effect.Concurrent
+import cats.effect.ContextShift
 import cats.implicits._
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.core._
 import ru.d10xa.file_adventure.fs.Fs
+import ru.d10xa.file_adventure.fs.PathStreamService
+import ru.d10xa.file_adventure.fs.PathStreamService.InnerSfv
+import ru.d10xa.file_adventure.fs.PathStreamService.OuterSfv
+import ru.d10xa.file_adventure.fs.PathStreamService.PlainFile
+import ru.d10xa.file_adventure.fs.PathStreamService.ToCheck
 import ru.d10xa.file_adventure.implicits._
 import ru.d10xa.file_adventure.progress.TraverseProgress
 
-class Check[
-  F[_]: Fs: TraverseProgress: Checksum: Log: MonadError[*[_], Throwable]
-](sfvReader: SfvReader[F]) {
+class Check[F[_]: Bracket[
+  *[_],
+  Throwable
+]: Concurrent: ContextShift: Fs: TraverseProgress: Checksum: Log](
+  pathStreamService: PathStreamService[F]
+) {
 
   val sfvFileName: String = FILESUM_CONSTANT_NAME
 
-  def check(fileToCheck: FileToCheck): F[CheckedFile] =
+  def check(fileToCheck: SfvItem): F[CheckedFile] =
     for {
       _ <- Log[F].debug(s"start check (${fileToCheck.file.show})")
       res <- fileToCheck.check[F]()
       _ <- Log[F].debug(s"valid: ${res.valid.show} (${fileToCheck.file.show})")
     } yield res
 
-  def checkDir(dir: Path): F[Vector[CheckedFile]] = {
-    val regularFiles: F[Vector[Path]] = for {
-      _ <- Log[F].debug(s"checkDir: (${dir.show})")
-      res <- Fs[F].listRecursive(dir, core.filePredicate)
-    } yield res
+  def plainFilesToAbsNamesSet(files: Vector[PlainFile]): Set[String] =
+    files.map(_.path.normalize().toAbsolutePath.show).toSet
 
-    val filesToCheck = sfvReader.readRecursiveSfvFiles(dir, sfvFileName)
-
-    val checkedFiles: F[Vector[CheckedFile]] =
-      filesToCheck.flatMap(_.traverseWithProgress(check))
-
-    val fileNamesFromSumFile: F[Set[String]] =
-      filesToCheck.map(_.map(_.file.nameOrEmpty).toSet)
-
-    def toUntracked(files: Vector[Path]): F[Vector[UntrackedFile]] =
-      files.traverse(file =>
-        Checksum[F].sha256(file).map(hash => UntrackedFile(file, hash))
-      )
-
-    val untrackedFiles: F[Vector[UntrackedFile]] = regularFiles
-      .flatMap { files =>
-        files
-          .filterA(file =>
-            fileNamesFromSumFile.map(set =>
-              !set.contains(Option(file.getFileName.show).getOrElse(""))
-            )
-          )
-      }
-      .flatMap(toUntracked)
-
+  def checkDir(dir: Path): F[Vector[CheckedFile]] =
     for {
-      a <- checkedFiles
-      b <- untrackedFiles
-    } yield a ++ b
-  }
+      toCheck <- Blocker[F].use(blocker =>
+        pathStreamService.inOutWalk(blocker, dir, sfvFileName).compile.toVector
+      )
+      (inners, outers, plain) = ToCheck.divide(toCheck)
+      sfvItemsOuters <-
+        outers
+          .traverse {
+            case OuterSfv(path) => SfvItem.readFromSumFile(dir.resolve(path))
+          }
+          .map(_.flatten.filter(item => dir.isParentFor(item.file)))
+      sfvItemsInners <-
+        inners
+          .traverse { case InnerSfv(path) => SfvItem.readFromSumFile(path) }
+          .map(_.flatten)
+      sfvItems = sfvItemsOuters ++ sfvItemsInners
+      checked <- sfvItems.traverseWithProgress(check)
+      absPathsSet = plainFilesToAbsNamesSet(plain)
+      untracked =
+        plain
+          .filter {
+            case PlainFile(path) =>
+              !absPathsSet.contains(path.normalize().toAbsolutePath.show)
+          }
+          .map { case PlainFile(path) => UntrackedFile(path) }
+    } yield checked ++ untracked
+
+  def trackedPredicate(absRealPathsFromSfv: Set[String])(path: Path): Boolean =
+    absRealPathsFromSfv.contains(path.normalize().toAbsolutePath.show)
 
   def checkDirs(dirs: Vector[Path]): F[Vector[CheckedFile]] =
     dirs
@@ -94,44 +103,36 @@ final case class DirsToCheck(dirs: Vector[File]) {
   )
 }
 
-// TODO rename to SfvItem https://en.wikipedia.org/wiki/Simple_file_verification
-// TODO file rename to filename ???
-// TODO expectedHash rename to checksum
-final case class FileToCheck(file: Path, expectedHash: Sha256Hash) {
-  import ru.d10xa.file_adventure.implicits._
-  // TODO erroneous requirement. Need to remove
-  require(
-    Files.isRegularFile(file),
-    s"FileToCheck must be initialized only with files. (${file.show})"
-  )
+// https://en.wikipedia.org/wiki/Simple_file_verification
+final case class SfvItem(file: Path, checksum: Sha256Hash) {
   def check[F[_]: Monad: Fs: Checksum](): F[CheckedFile] = {
     val missingCase =
-      FileSystemMissingFile(file, expectedHash)
+      FileSystemMissingFile(file, checksum)
         .pure[F]
         .widen[CheckedFile]
     val okCase =
       Checksum[F]
         .sha256(file)
-        .map(sha => ExistentCheckedFile(file, expectedHash, sha))
+        .map(sha => ExistentCheckedFile(file, checksum, sha))
         .widen[CheckedFile]
     Fs[F].isRegularFile(file).ifM[CheckedFile](okCase, missingCase)
   }
 }
 
-object FileToCheck {
+object SfvItem {
 
   def fileAndHashToFileToCheck(
     parent: Path,
     fileAndHash: FileAndHash
-  ): FileToCheck =
-    FileToCheck(parent.resolve(fileAndHash.regularFile), fileAndHash.hash)
+  ): SfvItem =
+    SfvItem(parent.resolve(fileAndHash.regularFile), fileAndHash.hash)
 
   def linesToFtc[F[_]: MonadError[*[_], Throwable]](
     file: Path,
     lines: Vector[String]
-  ): F[Vector[FileToCheck]] =
+  ): F[Vector[SfvItem]] =
     lines
-      .traverse[F, FileToCheck](line =>
+      .traverse[F, SfvItem](line =>
         file
           .parentF[F]
           .flatMap(parent =>
@@ -143,7 +144,7 @@ object FileToCheck {
 
   def readFromSumFile[F[_]: Fs: MonadError[*[_], Throwable]](
     file: Path
-  ): F[Vector[FileToCheck]] =
+  ): F[Vector[SfvItem]] =
     Fs[F].linesVector(file).flatMap(linesToFtc[F](file, _))
 
 }
@@ -161,8 +162,8 @@ object CheckedFile {
         s"FAIL ${file.show} ${expectedHash.show} != ${actualHash.show}"
       case FileSystemMissingFile(file, expectedHash) =>
         s"FILE NOT FOUND ${file.show}, ${expectedHash.show}"
-      case UntrackedFile(file, actualHash) =>
-        s"UNTRACKED FILE ${file.show}, ${actualHash.show}"
+      case UntrackedFile(file) =>
+        s"UNTRACKED FILE ${file.show}"
     }
 }
 
@@ -182,8 +183,7 @@ final case class FileSystemMissingFile(
 }
 
 final case class UntrackedFile(
-  file: Path,
-  actualHash: Sha256Hash
+  file: Path
 ) extends CheckedFile {
   override def valid: Boolean = false
 }

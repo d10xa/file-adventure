@@ -8,33 +8,33 @@ import ru.d10xa.file_adventure.implicits._
 
 trait SfvService[F[_]] {
   def compareBySum(
-    currentSide: Vector[FileToCheck],
-    otherSide: Vector[FileToCheck]
+    currentSide: Vector[SfvItem],
+    otherSide: Vector[SfvItem]
   ): SfvCompareResult
   def compareByPathAndSum(
     currentSideParent: Path,
     otherSideParent: Path,
-    currentSide: Vector[FileToCheck],
-    otherSide: Vector[FileToCheck]
+    currentSide: Vector[SfvItem],
+    otherSide: Vector[SfvItem]
   ): SfvCompareResult
 }
 
 object SfvService {
 
   final case class SfvCompareResult(
-    duplicates: Vector[FileToCheck],
-    unique: Vector[FileToCheck]
+    duplicates: Vector[SfvItem],
+    unique: Vector[SfvItem]
   )
 
   def make[F[_]]: SfvService[F] =
     new SfvService[F] {
       override def compareBySum(
-        currentSide: Vector[FileToCheck],
-        otherSide: Vector[FileToCheck]
+        currentSide: Vector[SfvItem],
+        otherSide: Vector[SfvItem]
       ): SfvCompareResult = {
-        val otherSideHashes = otherSide.map(_.expectedHash.value).toSet
-        def isDuplicate(sfv: FileToCheck): Boolean =
-          otherSideHashes.contains(sfv.expectedHash.value)
+        val otherSideHashes = otherSide.map(_.checksum.value).toSet
+        def isDuplicate(sfv: SfvItem): Boolean =
+          otherSideHashes.contains(sfv.checksum.value)
         val (dupl, uniq) = currentSide.partition(isDuplicate)
         SfvCompareResult(
           duplicates = dupl,
@@ -45,22 +45,22 @@ object SfvService {
       override def compareByPathAndSum(
         currentSideParent: Path,
         otherSideParent: Path,
-        currentSide: Vector[FileToCheck],
-        otherSide: Vector[FileToCheck]
+        currentSide: Vector[SfvItem],
+        otherSide: Vector[SfvItem]
       ): SfvCompareResult = {
         val otherSideSet: Set[(String, String)] =
           otherSide
             .map(sfv =>
               otherSideParent
                 .relativize(sfv.file)
-                .show -> sfv.expectedHash.value
+                .show -> sfv.checksum.value
             )
             .toSet
-        def isDuplicate(sfv: FileToCheck): Boolean =
+        def isDuplicate(sfv: SfvItem): Boolean =
           otherSideSet.contains(
             (
               currentSideParent.relativize(sfv.file).show,
-              sfv.expectedHash.value
+              sfv.checksum.value
             )
           )
         val (dupl, uniq) = currentSide.partition(isDuplicate)

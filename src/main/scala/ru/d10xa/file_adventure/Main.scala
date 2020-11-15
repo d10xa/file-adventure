@@ -4,6 +4,8 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import cats.data.NonEmptyList
+import cats.effect.Concurrent
+import cats.effect.ContextShift
 import cats.effect.ExitCode
 import cats.effect.IO
 import cats.effect.Sync
@@ -29,7 +31,7 @@ object Main
   val debugOpt: Opts[Boolean] = Opts.flag("debug", "log in debug mode").orFalse
 
   val progressOpt: Opts[Boolean] =
-    Opts.flag("progress", "log in debug mode").orFalse
+    Opts.flag("progress", "enable progress bar").orFalse
 
   val minusOpts: Opts[MinusCommand] =
     Opts.subcommand("minus", help = "l - r")(
@@ -98,7 +100,7 @@ object Main
 
   override def main: Opts[IO[ExitCode]] = program[IO]
 
-  def program[F[_]: Sync]: Opts[F[ExitCode]] = {
+  def program[F[_]: ContextShift: Concurrent]: Opts[F[ExitCode]] = {
     val minus = minusOpts.map(runCommand[F])
     val sha256 = sha256Opts.map(runCommand[F])
     val create = createOpts.map(runCommand[F])
@@ -107,7 +109,9 @@ object Main
     minus.orElse(sha256).orElse(create).orElse(check).orElse(compare)
   }
 
-  def runCommand[F[_]: Sync](c: CommandBase): F[ExitCode] = {
+  def runCommand[F[_]: ContextShift: Concurrent](
+    c: CommandBase
+  ): F[ExitCode] = {
     val debug = c match {
       case c: CheckCommand => c.debug
       case _ => false
