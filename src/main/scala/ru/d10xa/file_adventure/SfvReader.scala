@@ -12,7 +12,7 @@ trait SfvReader[F[_]] {
   def readRecursiveSfvFiles(
     path: Path,
     sfvFileName: String
-  ): F[Vector[FileToCheck]]
+  ): F[Vector[SfvItem]]
 }
 
 object SfvReader {
@@ -29,13 +29,13 @@ object SfvReader {
       def filterRegularFiles(paths: Vector[Path]): F[Vector[Path]] =
         paths.filterA(p => Fs[F].isRegularFile(p))
 
-      def readSumFiles(paths: Vector[Path]): F[Vector[FileToCheck]] =
-        paths.flatTraverse(FileToCheck.readFromSumFile[F])
+      def readSumFiles(paths: Vector[Path]): F[Vector[SfvItem]] =
+        paths.flatTraverse(SfvItem.readFromSumFile[F])
 
       override def readRecursiveSfvFiles(
         path: Path,
         sfvFileName: String
-      ): F[Vector[FileToCheck]] =
+      ): F[Vector[SfvItem]] =
         listRecursiveSumFiles(path, sfvFileName)
           .flatMap(filterRegularFiles)
           .flatMap(readSumFiles)

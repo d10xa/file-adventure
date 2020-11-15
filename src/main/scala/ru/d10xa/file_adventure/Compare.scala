@@ -22,17 +22,17 @@ class Compare[F[_]: Fs: Monad: Console](
 
   val sfvFileName: String = FILESUM_CONSTANT_NAME
 
-  implicit val eqByPathAndHash: Eq[FileToCheck] =
+  implicit val eqByPathAndHash: Eq[SfvItem] =
     Eq.instance {
-      case (FileToCheck(fl, sl), FileToCheck(fr, sr)) =>
+      case (SfvItem(fl, sl), SfvItem(fr, sr)) =>
         fl.nameOrEmpty === fr.nameOrEmpty && sl.value === sr.value
     }
 
   def compareSides(
     currentSideParent: Path,
     otherSideParent: Path,
-    currentSide: Vector[FileToCheck],
-    otherSide: Vector[FileToCheck]
+    currentSide: Vector[SfvItem],
+    otherSide: Vector[SfvItem]
   ): ComparisonSide = {
     val compareBySumResult = sfvService.compareBySum(currentSide, otherSide)
     val compareByPathAndSumResult = sfvService

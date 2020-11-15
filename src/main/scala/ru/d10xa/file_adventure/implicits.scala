@@ -27,9 +27,12 @@ trait JavaNioImplicits extends CatsInstances {
           )
         )
         .liftTo[F]
-  }
 
+    def isParentFor(file: Path): Boolean =
+      file.normalize().toAbsolutePath.startsWith(f.normalize().toAbsolutePath)
+  }
   implicit class PathOps(private val f: Path) {
+    def fileNameOption: Option[Path] = Option(f.getFileName)
     def nameOrEmpty: String =
       Option(f.getFileName).map(_.show).getOrElse("")
     def absolutePathUnsafe: String =
@@ -40,11 +43,11 @@ trait JavaNioImplicits extends CatsInstances {
 
 trait ProgressInstances extends JavaNioImplicits {
   implicit def fileToCheckProgressInfo[F[_]: PathSize: Applicative]
-    : ProgressInfo[F, FileToCheck] =
-    new ProgressInfo[F, FileToCheck] {
-      override def step(a: FileToCheck): F[Long] =
+    : ProgressInfo[F, SfvItem] =
+    new ProgressInfo[F, SfvItem] {
+      override def step(a: SfvItem): F[Long] =
         PathSize[F].size(a.file)
-      override def message(a: FileToCheck): F[String] =
+      override def message(a: SfvItem): F[String] =
         a.file.nameOrEmpty.pure[F]
     }
   implicit def javaNioPathProgressInfo[F[_]: PathSize: Applicative]

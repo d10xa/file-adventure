@@ -1,12 +1,14 @@
 package ru.d10xa.file_adventure
 
-import cats.effect.Sync
+import cats.effect.Concurrent
+import cats.effect.ContextShift
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.FileWrite
 import cats.implicits._
 import ru.d10xa.file_adventure.progress.Progress
 import ru.d10xa.file_adventure.progress.Progress.ProgressBuilder
 import ru.d10xa.file_adventure.fs.Fs
+import ru.d10xa.file_adventure.fs.PathStreamService
 import ru.d10xa.file_adventure.progress.TraverseProgress
 
 class Context[F[_]](
@@ -27,7 +29,7 @@ class Context[F[_]](
 }
 
 object Context {
-  def make[F[_]: Sync](
+  def make[F[_]: ContextShift: Concurrent](
     debug: Boolean,
     progress: Boolean
   ): F[Context[F]] =
@@ -43,8 +45,9 @@ object Context {
       implicit0(log: Log[F]) = Log.make[F](debug)
       sfvReader = SfvReader.make[F]
       sfvService = SfvService.make[F]
+      pathStreamService = new PathStreamService[F]
       create = new Create[F]()
-      check = new Check[F](sfvReader)
+      check = new Check[F](pathStreamService)
       sha256 = new Sha256[F]()
       minus = new Minus[F]()
       compare = new Compare[F](sfvReader, sfvService)
