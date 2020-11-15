@@ -3,19 +3,21 @@ package ru.d10xa.file_adventure.fs
 import java.nio.file.Path
 
 import cats.effect.Blocker
+import cats.effect.Concurrent
 import cats.effect.ContextShift
-import cats.effect.Sync
 import fs2.Stream
 import ru.d10xa.file_adventure.fs.PathStreamService.InnerSfv
 import ru.d10xa.file_adventure.fs.PathStreamService.PlainFile
 import ru.d10xa.file_adventure.fs.PathStreamService.ToCheck
 import cats.implicits._
+import fs2.concurrent.NoneTerminatedQueue
+import fs2.concurrent.Queue
 import ru.d10xa.file_adventure.fs.PathStreamService.OuterSfv
 import ru.d10xa.file_adventure.implicits._
 
 import scala.annotation.tailrec
 
-class PathStreamService[F[_]: Sync: ContextShift: Fs] {
+class PathStreamService[F[_]: Concurrent: ContextShift: Fs] {
 
   /**
     * Given path /a/b/c. Method [[outerWalk]] will check
@@ -44,13 +46,43 @@ class PathStreamService[F[_]: Sync: ContextShift: Fs] {
     path: Path,
     sfvFileName: String
   ): Stream[F, ToCheck] =
-    fs2.io.file
-      .walk[F](blocker, path)
-      .evalFilter(Fs[F].isRegularFile)
-      .map(path =>
-        if (path.getFileName.show == sfvFileName) InnerSfv(path)
-        else PlainFile(path)
-      )
+    for {
+      (s1, s2) <- innerWalkSeparate(blocker, path, sfvFileName)
+      s3 <- Stream(s1.widen[ToCheck], s2.widen[ToCheck]).parJoinUnbounded
+    } yield s3
+
+  def innerWalkSeparate(
+    blocker: Blocker,
+    path: Path,
+    sfvFileName: String
+  ): Stream[F, (Stream[F, InnerSfv], Stream[F, PlainFile])] = {
+
+    def withQueue(
+      qInner: NoneTerminatedQueue[F, InnerSfv],
+      qPlain: NoneTerminatedQueue[F, PlainFile]
+    ): Stream[F, (Stream[F, InnerSfv], Stream[F, PlainFile])] = {
+      val enqueueSome = fs2.io.file
+        .walk[F](blocker, path)
+        .evalFilter(Fs[F].isRegularFile)
+        .evalTap(path =>
+          if (path.getFileName.show == sfvFileName)
+            qInner.enqueue1(Some(InnerSfv(path)))
+          else qPlain.enqueue1(Some(PlainFile(path)))
+        )
+        .drain
+      val enqueueNone =
+        Stream.eval(qInner.enqueue1(None)) ++ Stream.eval(qPlain.enqueue1(None))
+      Stream
+        .emit((qInner.dequeue, qPlain.dequeue))
+        .concurrently(enqueueSome ++ enqueueNone)
+    }
+
+    for {
+      qInner <- Stream.eval(Queue.noneTerminated[F, InnerSfv])
+      qPlain <- Stream.eval(Queue.noneTerminated[F, PlainFile])
+      s <- withQueue(qInner, qPlain)
+    } yield s
+  }
 
   /**
     * Join [[outerWalk]] and [[innerWalk]]
