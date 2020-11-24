@@ -12,10 +12,9 @@ import ru.d10xa.file_adventure.fs.PathStreamService.ToCheck
 import cats.implicits._
 import fs2.concurrent.NoneTerminatedQueue
 import fs2.concurrent.Queue
+import ru.d10xa.file_adventure.SfvItem
 import ru.d10xa.file_adventure.fs.PathStreamService.OuterSfv
 import ru.d10xa.file_adventure.implicits._
-
-import scala.annotation.tailrec
 
 class PathStreamService[F[_]: Concurrent: ContextShift: Fs] {
 
@@ -97,36 +96,45 @@ class PathStreamService[F[_]: Concurrent: ContextShift: Fs] {
       path,
       sfvFileName
     )
+
+  /**
+    * Returns two separate streams:
+    *  1) sfv items (entries from checksum files)
+    *  2) plain files
+    */
+  def sfvItemsAndPlainFilesSeparate(
+    blocker: Blocker,
+    dir: Path,
+    sfvFileName: String
+  ): fs2.Stream[F, (fs2.Stream[F, SfvItem], fs2.Stream[F, PlainFile])] =
+    for {
+      (innerStream, plainStream) <- innerWalkSeparate(blocker, dir, sfvFileName)
+      outerStream = outerWalk(dir, sfvFileName)
+      innerSfvItemsStream =
+        innerStream
+          .evalMap {
+            case InnerSfv(path) =>
+              SfvItem.readFromSumFile(path)
+          }
+          .flatMap(fs2.Stream.emits)
+      outerSfvItemsStream =
+        outerStream
+          .evalMap {
+            case OuterSfv(path) =>
+              SfvItem.readFromSumFile(dir.resolve(path))
+          }
+          .flatMap(fs2.Stream.emits)
+      sfvItemsInScope =
+        fs2
+          .Stream(innerSfvItemsStream, outerSfvItemsStream)
+          .parJoinUnbounded
+          .filter(item => dir.isParentFor(item.file))
+    } yield (sfvItemsInScope, plainStream)
 }
 
 object PathStreamService {
   sealed trait ToCheck {
     def path: Path
-  }
-
-  object ToCheck {
-
-    def divide(
-      list: Vector[ToCheck]
-    ): (Vector[InnerSfv], Vector[OuterSfv], Vector[PlainFile]) =
-      divide(list, Vector.empty, Vector.empty, Vector.empty)
-
-    @tailrec
-    private def divide(
-      list: Vector[ToCheck],
-      inners: Vector[InnerSfv],
-      outers: Vector[OuterSfv],
-      plains: Vector[PlainFile]
-    ): (Vector[InnerSfv], Vector[OuterSfv], Vector[PlainFile]) =
-      list match {
-        case head +: tail =>
-          head match {
-            case a: InnerSfv => divide(tail, inners.:+(a), outers, plains)
-            case b: OuterSfv => divide(tail, inners, outers.:+(b), plains)
-            case c: PlainFile => divide(tail, inners, outers, plains.:+(c))
-          }
-        case _ => (inners, outers, plains)
-      }
   }
 
   final case class InnerSfv(path: Path) extends ToCheck

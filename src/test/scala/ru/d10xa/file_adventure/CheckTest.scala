@@ -3,6 +3,7 @@ package ru.d10xa.file_adventure
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import cats.effect.Blocker
 import cats.effect.IO
 import org.scalatest.Inspectors._
 
@@ -50,6 +51,8 @@ class CheckTest extends TestBase {
     checkFullPath(Paths.get(s"src/test/file/check/$path"))
 
   def checkFullPath(d: Path): Vector[CheckedFile] =
-    new Check[IO](pathStreamService).checkDir(d).unsafeRunSync()
+    Blocker[IO]
+      .use(blocker => new Check[IO](pathStreamService).checkDir(blocker, d))
+      .unsafeRunSync()
 
 }

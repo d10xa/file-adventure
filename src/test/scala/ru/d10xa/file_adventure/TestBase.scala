@@ -2,6 +2,7 @@ package ru.d10xa.file_adventure
 
 import java.util.concurrent.Executors
 
+import cats.effect.ContextShift
 import cats.effect.IO
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -15,7 +16,7 @@ import ru.d10xa.file_adventure.progress.TraverseProgress
 import scala.concurrent.ExecutionContext
 
 abstract class TestBase extends AnyFunSuite with Matchers {
-  implicit val ec = IO.contextShift(
+  implicit val ec: ContextShift[IO] = IO.contextShift(
     ExecutionContext.fromExecutorService(
       Executors
         .newFixedThreadPool(5)

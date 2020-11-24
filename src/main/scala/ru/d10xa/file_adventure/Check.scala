@@ -9,16 +9,14 @@ import cats.effect.Bracket
 import cats.effect.Concurrent
 import cats.effect.ContextShift
 import cats.implicits._
+import fs2.Stream
 import ru.d10xa.file_adventure.core.FileAndHash
 import ru.d10xa.file_adventure.core.Sha256Hash
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.core._
 import ru.d10xa.file_adventure.fs.Fs
 import ru.d10xa.file_adventure.fs.PathStreamService
-import ru.d10xa.file_adventure.fs.PathStreamService.InnerSfv
-import ru.d10xa.file_adventure.fs.PathStreamService.OuterSfv
 import ru.d10xa.file_adventure.fs.PathStreamService.PlainFile
-import ru.d10xa.file_adventure.fs.PathStreamService.ToCheck
 import ru.d10xa.file_adventure.implicits._
 import ru.d10xa.file_adventure.progress.TraverseProgress
 
@@ -33,67 +31,67 @@ class Check[F[_]: Bracket[
 
   def check(fileToCheck: SfvItem): F[CheckedFile] =
     for {
-      _ <- Log[F].debug(s"start check (${fileToCheck.file.show})")
+      _ <- Log[F].debug(s"start check (${fileToCheck.file.normalize().show})")
       res <- fileToCheck.check[F]()
-      _ <- Log[F].debug(s"valid: ${res.valid.show} (${fileToCheck.file.show})")
+      _ <- Log[F].debug(
+        s"valid: ${res.valid.show} (${fileToCheck.file.normalize().show})"
+      )
     } yield res
 
   def plainFilesToAbsNamesSet(files: Vector[PlainFile]): Set[String] =
     files.map(_.path.normalize().toAbsolutePath.show).toSet
 
-  def checkDir(dir: Path): F[Vector[CheckedFile]] =
+  def checkDirStream(blocker: Blocker, dir: Path): Stream[F, CheckedFile] =
     for {
-      toCheck <- Blocker[F].use(blocker =>
-        pathStreamService.inOutWalk(blocker, dir, sfvFileName).compile.toVector
+      (sfvItems, plainFiles) <- pathStreamService.sfvItemsAndPlainFilesSeparate(
+        blocker,
+        dir,
+        sfvFileName
       )
-      (inners, outers, plain) = ToCheck.divide(toCheck)
-      sfvItemsOuters <-
-        outers
-          .traverse {
-            case OuterSfv(path) => SfvItem.readFromSumFile(dir.resolve(path))
-          }
-          .map(_.flatten.filter(item => dir.isParentFor(item.file)))
-      sfvItemsInners <-
-        inners
-          .traverse { case InnerSfv(path) => SfvItem.readFromSumFile(path) }
-          .map(_.flatten)
-      sfvItems = sfvItemsOuters ++ sfvItemsInners
-      checked <- sfvItems.traverseWithProgress(check)
-      absPathsSet = plainFilesToAbsNamesSet(plain)
-      untracked =
-        plain
-          .filter {
-            case PlainFile(path) =>
-              !absPathsSet.contains(path.normalize().toAbsolutePath.show)
-          }
+      absPathSet <-
+        Stream.eval(plainFiles.compile.toList.map(AbsolutePathSet.apply[List]))
+      checkedAsStream =
+        Stream
+          .eval(
+            sfvItems.compile.toVector.flatMap(_.traverseWithProgress(check))
+          )
+          .flatMap(v => Stream.emits(v))
+      untrackedAsStream =
+        plainFiles
+          .filterNot(absPathSet.contains)
           .map { case PlainFile(path) => UntrackedFile(path) }
-    } yield checked ++ untracked
+      res <- checkedAsStream ++ untrackedAsStream.widen[CheckedFile]
+    } yield res
+
+  def checkDir(blocker: Blocker, dir: Path): F[Vector[CheckedFile]] =
+    checkDirStream(blocker, dir).compile.toVector
 
   def trackedPredicate(absRealPathsFromSfv: Set[String])(path: Path): Boolean =
     absRealPathsFromSfv.contains(path.normalize().toAbsolutePath.show)
 
-  def checkDirs(dirs: Vector[Path]): F[Vector[CheckedFile]] =
+  def checkDirs(blocker: Blocker, dirs: Vector[Path]): F[Vector[CheckedFile]] =
     dirs
       .foldLeftM(Vector.empty[CheckedFile]) {
-        case (acc, f) => checkDir(f).map(acc ++ _)
+        case (acc, f) => checkDir(blocker, f).map(acc ++ _)
       }
 
   def run(c: CheckCommand): F[Unit] =
-    checkDirs(Vector(c.dir))
-      .flatTap(list => Log[F].debug(s"Total checked: ${list.size.show}"))
-      .map(list =>
-        list
-          .filter {
-            case e: ExistentCheckedFile => !e.valid
-            case _ => true
-          }
-          .map(_.show)
-      )
-      .flatMap(list =>
-        Log[F].debug(s"Total invalid: ${list.size.show}") >>
-          list.traverse_(item => Log[F].info(item))
-      )
-
+    Blocker[F].use(blocker =>
+      checkDirs(blocker, Vector(c.dir))
+        .flatTap(list => Log[F].debug(s"Total checked: ${list.size.show}"))
+        .map(list =>
+          list
+            .filter {
+              case e: ExistentCheckedFile => !e.valid
+              case _ => true
+            }
+            .map(_.show)
+        )
+        .flatMap(list =>
+          Log[F].debug(s"Total invalid: ${list.size.show}") >>
+            list.traverse_(item => Log[F].info(item))
+        )
+    )
 }
 
 final case class DirsToCheck(dirs: Vector[File]) {
