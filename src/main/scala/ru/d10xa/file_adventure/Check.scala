@@ -11,7 +11,7 @@ import cats.effect.ContextShift
 import cats.implicits._
 import fs2.Stream
 import ru.d10xa.file_adventure.core.FileAndHash
-import ru.d10xa.file_adventure.core.Sha256Hash
+import ru.d10xa.file_adventure.core.Sha256Sum
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.core._
 import ru.d10xa.file_adventure.fs.Fs
@@ -102,7 +102,7 @@ final case class DirsToCheck(dirs: Vector[File]) {
 }
 
 // https://en.wikipedia.org/wiki/Simple_file_verification
-final case class SfvItem(file: Path, checksum: Sha256Hash) {
+final case class SfvItem(file: Path, checksum: Sha256Sum) {
   def check[F[_]: Monad: Fs: Checksum](): F[CheckedFile] = {
     val missingCase =
       FileSystemMissingFile(file, checksum)
@@ -167,15 +167,15 @@ object CheckedFile {
 
 final case class ExistentCheckedFile(
   file: Path,
-  expectedHash: Sha256Hash,
-  actualHash: Sha256Hash
+  expectedHash: Sha256Sum,
+  actualHash: Sha256Sum
 ) extends CheckedFile {
   override def valid: Boolean = expectedHash === actualHash
 }
 
 final case class FileSystemMissingFile(
   file: Path,
-  expectedHash: Sha256Hash
+  expectedHash: Sha256Sum
 ) extends CheckedFile {
   override def valid: Boolean = false
 }

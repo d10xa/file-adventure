@@ -14,19 +14,18 @@ object core {
 
   val FILESUM_CONSTANT_NAME = ".sha256.sfv"
 
-  // TODO rename to Sha256Sum
-  final case class Sha256Hash(value: String) extends AnyRef {
+  final case class Sha256Sum(value: String) extends AnyRef {
     def asBigInteger: BigInt = new BigInteger(value, 16)
   }
 
-  object Sha256Hash {
-    implicit val eqSha256Hash: Eq[Sha256Hash] = Eq.fromUniversalEquals
-    implicit val showSha256Hash: Show[Sha256Hash] =
-      Show[Sha256Hash](_.value)
-    def fromString(str: String): Sha256Hash = Sha256Hash(sha256Hex(str))
+  object Sha256Sum {
+    implicit val eqSha256Hash: Eq[Sha256Sum] = Eq.fromUniversalEquals
+    implicit val showSha256Hash: Show[Sha256Sum] =
+      Show[Sha256Sum](_.value)
+    def fromString(str: String): Sha256Sum = Sha256Sum(sha256Hex(str))
   }
 
-  final case class FileAndHash(regularFile: Path, hash: Sha256Hash) {
+  final case class FileAndHash(regularFile: Path, hash: Sha256Sum) {
     val asFileString: String = s"${hash.show} *${regularFile.show}"
   }
 
@@ -43,7 +42,7 @@ object core {
     ): F[FileAndHash] =
       line.split(" [*,\\s]", 2).toList match {
         case sum :: file :: Nil =>
-          FileAndHash(parent.relativize(parent.resolve(file)), Sha256Hash(sum))
+          FileAndHash(parent.relativize(parent.resolve(file)), Sha256Sum(sum))
             .pure[F]
         case xs =>
           new IllegalArgumentException(xs.mkString("[", ",", "]"))

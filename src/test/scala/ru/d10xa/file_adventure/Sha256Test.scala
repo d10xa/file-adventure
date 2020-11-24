@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import cats.effect.IO
 import ru.d10xa.file_adventure.Sha256.recursiveHash
-import ru.d10xa.file_adventure.core.Sha256Hash
+import ru.d10xa.file_adventure.core.Sha256Sum
 
 class Sha256Test extends TestBase {
 
@@ -14,7 +14,7 @@ class Sha256Test extends TestBase {
     )
       .unsafeRunSync()
       .shouldEqual(
-        Sha256Hash(
+        Sha256Sum(
           "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447"
         )
       )
@@ -25,7 +25,7 @@ class Sha256Test extends TestBase {
     )
       .unsafeRunSync()
       .shouldEqual(
-        Sha256Hash(
+        Sha256Sum(
           "9e7cc9e1540e8b9cc91eb6a7da9ec924144b2eaaae26097c6427dcf547711add"
         )
       )

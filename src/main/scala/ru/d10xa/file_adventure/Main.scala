@@ -8,7 +8,7 @@ import cats.effect.Concurrent
 import cats.effect.ContextShift
 import cats.effect.ExitCode
 import cats.effect.IO
-import ru.d10xa.file_adventure.core.Sha256Hash
+import ru.d10xa.file_adventure.core.Sha256Sum
 import cats.implicits._
 import com.monovore.decline._
 import com.monovore.decline.effect._
@@ -19,12 +19,12 @@ object Main
       header = "hash sum command line utility"
     ) {
 
-  val sortHashes: Vector[Sha256Hash] => Vector[Sha256Hash] =
+  val sortHashes: Vector[Sha256Sum] => Vector[Sha256Sum] =
     xs => xs.sortBy(_.asBigInteger)
 
-  val sortedHashesToSingleHash: Vector[Sha256Hash] => Sha256Hash = {
-    case Vector(x: Sha256Hash) => x
-    case xs => Sha256Hash.fromString(xs.map(_.value.show).mkString(""))
+  val sortedHashesToSingleHash: Vector[Sha256Sum] => Sha256Sum = {
+    case Vector(x: Sha256Sum) => x
+    case xs => Sha256Sum.fromString(xs.map(_.value.show).mkString(""))
   }
 
   val debugOpt: Opts[Boolean] = Opts.flag("debug", "log in debug mode").orFalse

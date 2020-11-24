@@ -5,7 +5,7 @@ import java.nio.file.Path
 import cats._
 import cats.implicits._
 import ru.d10xa.file_adventure.core.FileAndHash
-import ru.d10xa.file_adventure.core.Sha256Hash
+import ru.d10xa.file_adventure.core.Sha256Sum
 import ru.d10xa.file_adventure.fs.Checksum
 import ru.d10xa.file_adventure.fs.FileWrite
 import ru.d10xa.file_adventure.fs.Fs
@@ -27,7 +27,7 @@ class Create[F[_]: Fs: TraverseProgress: Monad: FileWrite: Checksum] {
     val content = calculateSums(files)
       .map(v =>
         v.map {
-          case FileAndHash(file, Sha256Hash(hash)) =>
+          case FileAndHash(file, Sha256Sum(hash)) =>
             s"${hash.show} *${parent.relativize(file).show}"
         }
       )

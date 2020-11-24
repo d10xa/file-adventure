@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import cats.Monad
 import cats.implicits._
-import ru.d10xa.file_adventure.core.Sha256Hash
+import ru.d10xa.file_adventure.core.Sha256Sum
 import ru.d10xa.file_adventure.Main.sortHashes
 import ru.d10xa.file_adventure.Main.sortedHashesToSingleHash
 import ru.d10xa.file_adventure.core.FileAndHash
@@ -25,7 +25,7 @@ object Sha256 {
 
   def filesToSingleHash[F[_]: Fs: Monad: TraverseProgress: Checksum](
     files: Vector[Path]
-  ): F[Sha256Hash] =
+  ): F[Sha256Sum] =
     for {
       fileAndHashes <-
         files.traverseWithProgress((p: Path) => FileAndHash.fromFile[F](p))
@@ -36,7 +36,7 @@ object Sha256 {
 
   def recursiveHash[F[_]: Fs: Monad: TraverseProgress: Checksum](
     f: Path
-  ): F[Sha256Hash] =
+  ): F[Sha256Sum] =
     for {
       files <- Fs[F].listRecursive(f, core.filePredicate)
       res <- filesToSingleHash[F](files)
